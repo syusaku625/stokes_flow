@@ -163,10 +163,10 @@ double calc_determinant2x2(std::vector<std::vector<double>> A)
 void calc_inverse_matrix2x2(std::vector<std::vector<double>> &drdx, std::vector<std::vector<double>> dxdr)
 {
     double inverse=calc_determinant2x2(dxdr);
-    drdx[0][0]=1e0/fabs(inverse)*dxdr[1][1];
-    drdx[1][1]=1e0/fabs(inverse)*dxdr[0][0];
-    drdx[0][1]=1e0/fabs(inverse)*(dxdr[0][1])*(-1);
-    drdx[1][0]=1e0/fabs(inverse)*(dxdr[1][0])*(-1);
+    drdx[0][0]=1e0/inverse*dxdr[1][1];
+    drdx[1][1]=1e0/inverse*dxdr[0][0];
+    drdx[0][1]=1e0/inverse*(dxdr[0][1])*(-1);
+    drdx[1][0]=1e0/inverse*(dxdr[1][0])*(-1);
 }
 
 void Jacobi_method(std::vector<double> &p, vector<double> &R, vector<vector<double>> &G, double convergence)
@@ -443,23 +443,23 @@ int main()
     vector<double> pressure(pressure_node.size());
     vector<double> u(node.size()), v(node.size());
 
-    vector<double> gauss_point = {-0.861135311594053, -0.339981043584856, 0.339981043584856, 0.861135311594053};
-    vector<double> gauss_weight = {0.347854845137454, 0.652145154862546, 0.652145154862546, 0.347854845137454};
+    vector<double> gauss_point = {2e0/3e0, 1e0/6e0, 1e0/6e0};
+    vector<double> gauss_weight = {1e0/3e0, 1e0/3e0, 1e0/3e0};
     
     //calc Kv & Kvv
     vector<vector<double>> Kv(node.size(), vector<double>(node.size(), 0.0));
     vector<vector<vector<double>>> Kp(node.size(), vector<vector<double>>(pressure_node.size(), vector<double>(2, 0.0)));
     for(int i=0; i<element_v.size(); i++){
-        vector<vector<double>> dxdr(2, vector<double>(2)), drdx(2, vector<double>(2)), dNdr(6, vector<double>(2)), dNdx(6, vector<double>(2));
-        vector<double> N(3);
+        vector<vector<double>> dxdr(2, vector<double>(2, 0.0)), drdx(2, vector<double>(2, 0.0)), dNdr(6, vector<double>(2, 0.0)), dNdx(6, vector<double>(2, 0.0));
+        vector<double> N(3, 0.0);
         double sum_volume = 0.0;
         for(int j=0; j<gauss_point.size(); j++){
             for(int k=0; k<gauss_point.size(); k++){
                 ShapeFunctionC2D6_dNdr(dNdr, gauss_point[j], gauss_point[k]);
+                ShapeFunctionC2D3(N, gauss_point[j], gauss_point[k]);
                 calc_dxdr(dxdr, dNdr, element_v, node, i);
                 calc_inverse_matrix2x2(drdx,dxdr);
                 calc_dNdx(dNdx, drdx, dNdr);
-                ShapeFunctionC2D3(N, gauss_point[j], gauss_point[k]);
                 double partial_volume = calc_determinant2x2(dxdr);
                 sum_volume += partial_volume * gauss_weight[j] * gauss_weight[k];
                 //6x6 matrix
@@ -482,34 +482,6 @@ int main()
         }
         //cout << sum_volume << endl;
     }
-
-    //calc PSPG term
-    //vector<vector<double>> Kpspg(pressure_node.size(), vector<double>(pressure_node.size(), 0.0));
-    //for(int i=0; i<element_p.size(); i++){
-    //    vector<vector<double>> dxdr(2, vector<double>(2)), drdx(2, vector<double>(2)), dNdr(3, vector<double>(2)), dNdx(3, vector<double>(2));
-    //    vector<double> N(3);
-    //    for(int j=0; j<gauss_point.size(); j++){
-    //        for(int k=0; k<gauss_point.size(); k++){
-    //            ShapeFunctionC2D3_dNdr(dNdr, gauss_point[j], gauss_point[k]);
-    //            calc_dxdr_C2D3(dxdr, dNdr, element_p, pressure_node, i);
-    //            calc_inverse_matrix2x2(drdx,dxdr);
-    //            calc_dNdx_C2D3(dNdx, drdx, dNdr);
-    //            ShapeFunctionC2D3(N, gauss_point[j], gauss_point[k]);
-    //            double partial_volume = calc_determinant2x2(dxdr);
-    //            double he = return_max_edge_length(pressure_node, element_p, i);
-    //            //cout << he << endl;
-    //            double tau = pow(pow((2e0*1e-6/he),2.0) + (4e0/pow(he,2.0)),-0.5);
-    //            //3x3 matrix
-    //            for(int l=0; l<3; l++){
-    //                for(int m=0; m<3; m++){
-    //                    for(int n=0; n<2; n++){
-    //                        Kpspg[element_p[i][l]][element_p[i][m]] += tau * (dNdx[l][n] * dNdx[m][n]); 
-    //                    }
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
 
     vector<vector<double>> global_matrix(node.size()*2+pressure_node.size(), vector<double>(node.size()*2+pressure_node.size(), 0.0));
     vector<double> b(node.size()*2+pressure_node.size(), 0.0);
@@ -534,12 +506,6 @@ int main()
             global_matrix[i+2*node.size()][j+node.size()] = Kp[j][i][1];
         }
     }
-    //set Kpspg
-    //for(int i=0; i<pressure_node.size(); i++){
-    //    for(int j=0; j<pressure_node.size(); j++){
-    //        global_matrix[i+2*node.size()][j+2*node.size()] = Kpspg[i][j];
-    //    }
-    //}
 
     ofstream test("test.csv");
     for(int i=0; i<global_matrix.size(); i++){
