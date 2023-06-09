@@ -1,0 +1,13 @@
+Domain
+{
+  base_folder = "voxel_P2P1_element"
+  geometry = "quad"
+  numOfNodeInElmVelocity = 9
+  numOfNodeInElmPressure = 4
+}
+Parameter
+{
+  alpha = 1e-3
+  resistance = 1e4
+  mu = 1e-3
+}

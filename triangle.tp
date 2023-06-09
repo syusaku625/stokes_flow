@@ -1,0 +1,13 @@
+Domain
+{
+  base_folder = "triangle_P2P1_element"
+  geometry = "triangle"
+  numOfNodeInElmVelocity = 6
+  numOfNodeInElmPressure = 3
+}
+Parameter
+{
+  alpha = 1e-3
+  resistance = 1e4
+  mu = 1e-3
+}

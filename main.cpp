@@ -6,27 +6,34 @@
 #include<sstream>
 #include<set>
 #include<map>
+#include <chrono>
 #include <Eigen/Sparse>
+#include <Eigen/PardisoSupport>
 #include <Eigen/Dense>
 #include <Eigen/SparseQR>
+#include <Eigen/SparseLU>
 #include<algorithm>
+#include "TextParser.h"
 
 using namespace std;
 
-void file_read(string filename_element, string file_name_node, vector<vector<int>> &element_v, vector<vector<int>> &element_p, vector<vector<double>> &node)
+void file_read(string filename_element, string file_name_node, vector<vector<int>> &element_v, vector<vector<int>> &element_p, vector<vector<double>> &node, int numOfNodeInElmVelocity, int numOfNodeInElmPressure)
 {
     int numOfElm=0;
     int numOfNode=0;
     string str;
     //element_velocity
     ifstream ifs(filename_element);
+    if(!ifs){
+        cout << "error" << endl;
+    }
     getline(ifs,str);
     numOfElm = stoi(str);
     for(int i=0; i<numOfElm; i++){
         getline(ifs,str);
         istringstream ss(str);
         vector<int> tmp_elm;
-        for(int j=0; j<6; j++){
+        for(int j=0; j<numOfNodeInElmVelocity; j++){
             getline(ss, str, ' ');
             tmp_elm.push_back(stoi(str));
         }
@@ -41,7 +48,7 @@ void file_read(string filename_element, string file_name_node, vector<vector<int
         getline(ifs,str);
         istringstream ss(str);
         vector<int> tmp_elm;
-        for(int j=0; j<3; j++){
+        for(int j=0; j<numOfNodeInElmPressure; j++){
             getline(ss, str, ' ');
             tmp_elm.push_back(stoi(str));
         }
@@ -64,6 +71,16 @@ void file_read(string filename_element, string file_name_node, vector<vector<int
     }
 }
 
+void set_phi(string filename, vector<double> &phi)
+{
+    ifstream ifs(filename);
+    string str;
+    while(getline(ifs, str)){
+        phi[stoi(str)] = 1e0;
+    }
+    ifs.close();
+}
+
 void ShapeFunctionC2D6(vector<double> &N, double g1, double g2)
 {
     N[0] = g1 * (2e0 * g1 - 1e0);
@@ -74,11 +91,54 @@ void ShapeFunctionC2D6(vector<double> &N, double g1, double g2)
     N[5] = 4e0 * (1e0 - g1 - g2) * g1;
 }
 
+void ShapeFunctionC2D9(vector<double> &N, double g1, double g2)
+{
+    N[0] =  2.5e-1 * (1e+0-g1) * (1e+0-g2) * g1 * g2;
+    N[1] = -2.5e-1 * (1e+0+g1) * (1e+0-g2) * g1 * g2;
+    N[2] =  2.5e-1 * (1e+0+g1) * (1e+0+g2) * g1 * g2;
+    N[3] = -2.5e-1 * (1e+0-g1) * (1e+0+g2) * g1 * g2;
+    N[4] = -5e-1   * (1e+0-g1*g1) * (1e+0-g2) * g2;
+    N[5] =  5e-1   * (1e+0+g1) * (1e+0-g2*g2) * g1;
+    N[6] =  5e-1   * (1e+0-g1*g1) * (1e+0+g2) * g2;
+    N[7] = -5e-1   * (1e+0-g1) * (1e+0-g2*g2) * g1;
+    N[8] =           (1e+0-g1*g1) * (1e+0-g2*g2);
+}
+
 void ShapeFunctionC2D3(vector<double> &N, double g1, double g2)
 {
     N[0] = g1;
     N[1] = g2;
     N[2] = 1e0 - g1 - g2;
+}
+
+void ShapeFunctionC2D4(vector<double> &N, double g1, double g2)
+{
+    N[0] = 2.5e-1 * (1e+0-g1) * (1e+0-g2);
+    N[1] = 2.5e-1 * (1e+0+g1) * (1e+0-g2);
+    N[2] = 2.5e-1 * (1e+0+g1) * (1e+0+g2);
+    N[3] = 2.5e-1 * (1e+0-g1) * (1e+0+g2);
+}
+
+void ShapeFunctionC2D9_dNdr(vector<vector<double>> &dNdr, double g1, double g2)
+{
+    dNdr[0][0] = 2.5e-1  * (1e+0-g2) * g2 * (1e+0 - 2e+0*g1);
+    dNdr[0][1] = 2.5e-1  * (1e+0-g1) * g1 * (1e+0 - 2e+0*g2);
+    dNdr[1][0] = -2.5e-1 * (1e+0-g2) * g2 * (1e+0 + 2e+0*g1);
+    dNdr[1][1] = -2.5e-1 * (1e+0+g1) * g1 * (1e+0 - 2e+0*g2);
+    dNdr[2][0] = 2.5e-1  * (1e+0+g2) * g2 * (1e+0 + 2e+0*g1);
+    dNdr[2][1] = 2.5e-1  * (1e+0+g1) * g1 * (1e+0 + 2e+0*g2);
+    dNdr[3][0] = -2.5e-1 * (1e+0+g2) * g2 * (1e+0 - 2e+0*g1);
+    dNdr[3][1] = -2.5e-1 * (1e+0-g1) * g1 * (1e+0 + 2e+0*g2);
+    dNdr[4][0] = g1 * (1e+0-g2) * g2;
+    dNdr[4][1] = -5e-1 * (1e+0-g1*g1) * (1e+0-2e+0*g2);
+    dNdr[5][0] = 5e-1 * (1e+0-g2*g2) * (1e+0+2e+0*g1);
+    dNdr[5][1] = -g2 * (1e+0+g1) * g1;
+    dNdr[6][0] = -g1 * (1e+0+g2) * g2;
+    dNdr[6][1] = 5e-1    * (1e+0-g1*g1) * (1e+0+2e+0*g2);
+    dNdr[7][0] = -5e-1   * (1e+0-g2*g2) * (1e+0-2e+0*g1);
+    dNdr[7][1] = g2 * (1e+0-g1) * g1;
+    dNdr[8][0] = -2e+0 * g1 * (1e+0-g2*g2);
+    dNdr[8][1] = -2e+0 * g2 * (1e+0-g1*g1);
 }
 
 void ShapeFunctionC2D6_dNdr(vector<vector<double>> &dNdr, double g1, double g2)
@@ -107,12 +167,12 @@ void ShapeFunctionC2D3_dNdr(vector<vector<double>> &dNdr, double g1, double g2)
     dNdr[2][1] = -1e0;
 }
 
-void calc_dxdr(std::vector<std::vector<double>> &dxdr, std::vector<std::vector<double>> dNdr, vector<vector<int>> element, vector<vector<double>> x, int ic)
+void calc_dxdr(std::vector<std::vector<double>> &dxdr, std::vector<std::vector<double>> dNdr, vector<vector<int>> element, vector<vector<double>> x, int ic, int numOfNodeInElm)
 {
     for (int i = 0; i < 2; i++){
         for (int j = 0; j < 2; j++){
             dxdr[i][j] = 0e0;
-            for (int k = 0; k < 6; k++){
+            for (int k = 0; k < numOfNodeInElm; k++){
                 dxdr[i][j] += dNdr[k][j] * x[element[ic][k]][i];
             }
         }
@@ -131,9 +191,9 @@ void calc_dxdr_C2D3(std::vector<std::vector<double>> &dxdr, std::vector<std::vec
     }
 }
 
-void calc_dNdx(vector<vector<double>> &dNdx, vector<vector<double>> drdx, vector<vector<double>> &dNdr)
+void calc_dNdx(vector<vector<double>> &dNdx, vector<vector<double>> drdx, vector<vector<double>> &dNdr, int numOfNodeInElm)
 {
-    for (int i = 0; i < 6; i++){
+    for (int i = 0; i < numOfNodeInElm; i++){
         for (int j = 0; j < 2; j++){
             dNdx[i][j] = 0e0;
             for (int k = 0; k < 2; k++){
@@ -169,37 +229,6 @@ void calc_inverse_matrix2x2(std::vector<std::vector<double>> &drdx, std::vector<
     drdx[1][0]=1e0/inverse*(dxdr[1][0])*(-1);
 }
 
-void Jacobi_method(std::vector<double> &p, vector<double> &R, vector<vector<double>> &G, double convergence)
-{
-    vector<double> tmp_p;
-    int NN=p.size();
-    while(1){
-        tmp_p.resize(NN);
-        for (int i = 0; i < NN; i++)
-        {
-            tmp_p[i]=R[i];
-            for (int j = 0; j < NN; j++){
-                if(i!=j){
-                    tmp_p[i] -= G[i][j] * tmp_p[j];
-                }
-            }
-            tmp_p[i] /= G[i][i];
-            //cout << G[i][i] << endl;
-            //cout << tmp_p[i] << endl;
-        }
-        exit(1);
-        double err = 0.0;
-        for (int i = 0; i < NN; i++){
-            err += fabs(tmp_p[i] - p[i]);
-            p[i] = tmp_p[i];
-        }
-        //cout << err << endl;
-        if (err < convergence){
-            break;
-        }
-    }
-}
-
 void redefine_pressure_node_element(vector<vector<double>> node, vector<vector<int>> &element_p, vector<vector<double>> &pressure_node, map<int, int> &pressure_element_transform)
 {
     vector<int> memory_pressure_node_number;
@@ -230,7 +259,7 @@ void redefine_pressure_node_element(vector<vector<double>> node, vector<vector<i
     }
 }
 
-void export_vtu_quadratic_triangle(const std::string &file, vector<vector<int>> element, vector<vector<double>> node, vector<double> u, vector<double> v)
+void export_vtu_velocity(const std::string &file, vector<vector<int>> element, vector<vector<double>> node, vector<double> u, vector<double> v)
 {
     FILE *fp;
   if ((fp = fopen(file.c_str(), "w")) == NULL)
@@ -241,7 +270,7 @@ void export_vtu_quadratic_triangle(const std::string &file, vector<vector<int>> 
 
   fprintf(fp, "<VTKFile type=\"UnstructuredGrid\" version=\"1.0\" byte_order=\"LittleEndian\" header_type=\"UInt32\">\n");
   fprintf(fp, "<UnstructuredGrid>\n");
-  fprintf(fp, "<Piece NumberOfPoints= \"%d\" NumberOfCells= \"%d\" >\n", node.size(), element.size());
+  fprintf(fp, "<Piece NumberOfPoints= \"%d\" NumberOfCells= \"%d\" >\n", int(node.size()), int(element.size()));
   fprintf(fp, "<Points>\n");
   int offset = 0;
   fprintf(fp, "<DataArray type=\"Float64\" Name=\"Position\" NumberOfComponents=\"3\" format=\"appended\" offset=\"%d\"/>\n",offset);
@@ -251,7 +280,7 @@ void export_vtu_quadratic_triangle(const std::string &file, vector<vector<int>> 
   fprintf(fp, "<Cells>\n");
   fprintf(fp, "<DataArray type=\"Int64\" Name=\"connectivity\" format=\"ascii\">\n");
   for (int i = 0; i < element.size(); i++){
-    for (int j = 0; j < static_cast<int>(element[i].size()); j++) fprintf(fp, "%d ", element[i][j]);
+    for (int j = 0; j < static_cast<int>(element[i].size()); j++) fprintf(fp, "%d ", int(element[i][j]));
     fprintf(fp, "\n");
   }
   fprintf(fp, "</DataArray>\n");
@@ -264,8 +293,10 @@ void export_vtu_quadratic_triangle(const std::string &file, vector<vector<int>> 
   }
   fprintf(fp, "</DataArray>\n");
   fprintf(fp, "<DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">\n");
-  for (int i = 0; i < element.size(); i++) fprintf(fp, "%d\n", 22);
-    
+  for (int i = 0; i < element.size(); i++){
+    if(element[i].size()==6) fprintf(fp, "%d\n", 22);
+    if(element[i].size()==9) fprintf(fp, "%d\n", 23);
+  }
   fprintf(fp, "</DataArray>\n");
   fprintf(fp, "</Cells>\n");
 
@@ -325,7 +356,7 @@ void export_vtu_quadratic_triangle(const std::string &file, vector<vector<int>> 
   fclose(fp);
 }
 
-void export_vtu_triangle(const std::string &file, vector<vector<int>> element, vector<vector<double>> node, vector<double> p)
+void export_vtu_pressure(const std::string &file, vector<vector<int>> element, vector<vector<double>> node, vector<double> p)
 {
     FILE *fp;
   if ((fp = fopen(file.c_str(), "w")) == NULL)
@@ -336,7 +367,7 @@ void export_vtu_triangle(const std::string &file, vector<vector<int>> element, v
 
   fprintf(fp, "<VTKFile type=\"UnstructuredGrid\" version=\"1.0\" byte_order=\"LittleEndian\" header_type=\"UInt32\">\n");
   fprintf(fp, "<UnstructuredGrid>\n");
-  fprintf(fp, "<Piece NumberOfPoints= \"%d\" NumberOfCells= \"%d\" >\n", node.size(), element.size());
+  fprintf(fp, "<Piece NumberOfPoints= \"%d\" NumberOfCells= \"%d\" >\n", int(node.size()), int(element.size()));
   fprintf(fp, "<Points>\n");
   int offset = 0;
   fprintf(fp, "<DataArray type=\"Float64\" Name=\"Position\" NumberOfComponents=\"3\" format=\"appended\" offset=\"%d\"/>\n",offset);
@@ -359,7 +390,10 @@ void export_vtu_triangle(const std::string &file, vector<vector<int>> element, v
   }
   fprintf(fp, "</DataArray>\n");
   fprintf(fp, "<DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">\n");
-  for (int i = 0; i < element.size(); i++) fprintf(fp, "%d\n", 5);
+  for (int i = 0; i < element.size(); i++){
+    if(element[i].size()==3) fprintf(fp, "%d\n", 5);
+    if(element[i].size()==4) fprintf(fp, "%d\n", 9);
+  }
     
   fprintf(fp, "</DataArray>\n");
   fprintf(fp, "</Cells>\n");
@@ -428,68 +462,162 @@ double  return_max_edge_length(vector<vector<double>> node, vector<vector<int>> 
 
 typedef Eigen::Triplet<double> T;
 
-int main()
+int main(int argc,char *argv[])
 {
-    string file_node = "test_quadratic_node.dat";
-    string file_element = "test_quadratic_element.dat";
+    TextParser tp;
+    std::string input_file = argv[1];
+    int ierror;
+    if ((ierror = tp.read(input_file)) != TP_NO_ERROR) {
+     printf("\tError at reading '%s' file\n", input_file.c_str());
+      return 1;
+    }
+    string base_label = "/Domain";
+    string label = base_label + "/base_folder";
+    string base_input_dir;
+    double alpha, resistance, mu;
     vector<vector<int>> element_v, element_p;
-    vector<vector<double>> node;
-    file_read(file_element, file_node, element_v, element_p, node);
-
-    vector<vector<double>> pressure_node;
+    vector<vector<double>> node, pressure_node;
     map<int, int> pressure_element_transform;
-    redefine_pressure_node_element(node, element_p, pressure_node, pressure_element_transform);
+    vector<double> phi;
+    string geometry;
+    vector<double> pressure;
+    vector<double> u, v;
 
-    vector<double> pressure(pressure_node.size());
-    vector<double> u(node.size()), v(node.size());
+    if ( !tp.getInspectedValue(label,base_input_dir)){
+        cout << label << " is not set" << endl;
+        exit(0);
+    }
+    int numofNodeinElm_velocity, numofNodeinElm_pressure;
+    label = base_label + "/numOfNodeInElmVelocity";
+    if ( !tp.getInspectedValue(label,numofNodeinElm_velocity)){
+        cout << label << " is not set" << endl;
+        exit(0);
+    }
+    label = base_label + "/numOfNodeInElmPressure";
+    if ( !tp.getInspectedValue(label,numofNodeinElm_pressure)){
+        cout << label << " is not set" << endl;
+        exit(0);
+    }
+    label = base_label + "/geometry";
+    if ( !tp.getInspectedValue(label,geometry)){
+        cout << label << " is not set" << endl;
+        exit(0);
+    }
+    base_label = "/Parameter";
+    label = base_label + "/mu";
+    if ( !tp.getInspectedValue(label,mu)){
+        cout << label << " is not set" << endl;
+        exit(0);
+    }
+    if(geometry == "quad"){
+        label = base_label + "/alpha";
+        if ( !tp.getInspectedValue(label,alpha)){
+            cout << label << " is not set" << endl;
+            exit(0);
+        }
+        label = base_label + "/resistance";
+        if ( !tp.getInspectedValue(label,resistance)){
+            cout << label << " is not set" << endl;
+            exit(0);
+        }
+    }
 
-    vector<double> gauss_point = {2e0/3e0, 1e0/6e0, 1e0/6e0};
-    vector<double> gauss_weight = {1e0/3e0, 1e0/3e0, 1e0/3e0};
+    string file_node = base_input_dir + "/" + "node.dat";
+    string file_element = base_input_dir + "/" + "element.dat";
+    string flow_path = base_input_dir + "/" + "flow_element.dat";
+
+    file_read(file_element, file_node, element_v, element_p, node, numofNodeinElm_velocity, numofNodeinElm_pressure);
     
-    //calc Kv & Kvv
+    if(geometry=="quad"){
+        phi.resize(element_v.size());
+        set_phi(flow_path, phi);
+    }
+
+    redefine_pressure_node_element(node, element_p, pressure_node, pressure_element_transform);
+    pressure.resize(pressure_node.size());
+    u.resize(node.size());
+    v.resize(node.size());
+
+    vector<double> gauss_point, gauss_weight;
+    if (geometry == "triangle") {
+        gauss_point.resize(3); gauss_weight.resize(3);
+        gauss_point[0] = 2e0/3e0; gauss_point[1] = 1e0/6e0; gauss_point[2] = 1e0/6e0;
+        gauss_weight[0] = 1e0/3e0; gauss_weight[1] = 1e0/3e0; gauss_weight[2] = 1e0/3e0;
+    }
+    else if (geometry == "quad"){
+        gauss_point.resize(3); gauss_weight.resize(3);
+        gauss_point[0] = -0.774596669241483; gauss_point[1] = 0e0; gauss_point[2] = 0.774596669241483;
+        gauss_weight[0] = 0.555555555555555; gauss_weight[1] = 0.888888888888888; gauss_weight[2] = 0.555555555555555;
+    }
+    
     vector<vector<double>> Kv(node.size(), vector<double>(node.size(), 0.0));
     vector<vector<vector<double>>> Kp(node.size(), vector<vector<double>>(pressure_node.size(), vector<double>(2, 0.0)));
+    vector<vector<double>> Darcy(node.size(), vector<double>(node.size(), 0.0));
+    vector<vector<double>> global_matrix(node.size()*2+pressure_node.size(), vector<double>(node.size()*2+pressure_node.size(), 0.0));
+    vector<double> b(node.size()*2+pressure_node.size(), 0.0);
+
+    //calc Kv & Kvv & Darcy
     for(int i=0; i<element_v.size(); i++){
-        vector<vector<double>> dxdr(2, vector<double>(2, 0.0)), drdx(2, vector<double>(2, 0.0)), dNdr(6, vector<double>(2, 0.0)), dNdx(6, vector<double>(2, 0.0));
-        vector<double> N(3, 0.0);
+        vector<vector<double>> dxdr(2, vector<double>(2, 0.0)), drdx(2, vector<double>(2, 0.0)), dNdr(numofNodeinElm_velocity, vector<double>(2, 0.0)), dNdx(numofNodeinElm_velocity, vector<double>(2, 0.0));
+        vector<double> Np(numofNodeinElm_pressure, 0.0), Nv(numofNodeinElm_velocity, 0.0);
         double sum_volume = 0.0;
         for(int j=0; j<gauss_point.size(); j++){
             for(int k=0; k<gauss_point.size(); k++){
-                ShapeFunctionC2D6_dNdr(dNdr, gauss_point[j], gauss_point[k]);
-                ShapeFunctionC2D3(N, gauss_point[j], gauss_point[k]);
-                calc_dxdr(dxdr, dNdr, element_v, node, i);
-                calc_inverse_matrix2x2(drdx,dxdr);
-                calc_dNdx(dNdx, drdx, dNdr);
+                if (geometry == "triangle"){
+                    ShapeFunctionC2D6_dNdr(dNdr, gauss_point[j], gauss_point[k]);
+                    ShapeFunctionC2D6(Nv, gauss_point[j], gauss_point[k]);
+                    ShapeFunctionC2D3(Np, gauss_point[j], gauss_point[k]);
+                    calc_dxdr(dxdr, dNdr, element_v, node, i, numofNodeinElm_velocity);
+                    calc_inverse_matrix2x2(drdx,dxdr);
+                    calc_dNdx(dNdx, drdx, dNdr, numofNodeinElm_velocity);
+                }
+                else if (geometry == "quad"){
+                    ShapeFunctionC2D9_dNdr(dNdr, gauss_point[j], gauss_point[k]);
+                    ShapeFunctionC2D9(Nv, gauss_point[j], gauss_point[k]);
+                    ShapeFunctionC2D4(Np, gauss_point[j], gauss_point[k]);
+                    calc_dxdr(dxdr, dNdr, element_v, node, i, numofNodeinElm_velocity);
+                    calc_inverse_matrix2x2(drdx,dxdr);
+                    calc_dNdx(dNdx, drdx, dNdr, numofNodeinElm_velocity);
+                }
                 double partial_volume = calc_determinant2x2(dxdr);
                 sum_volume += partial_volume * gauss_weight[j] * gauss_weight[k];
                 //6x6 matrix
-                for(int l=0; l<6; l++){
-                    for(int m=0; m<6; m++){
+                for(int l=0; l<numofNodeinElm_velocity; l++){
+                    for(int m=0; m<numofNodeinElm_velocity; m++){
                         for(int n=0; n<2; n++){
-                            Kv[element_v[i][l]][element_v[i][m]] -= 1e-3 * dNdx[l][n]*dNdx[m][n] * partial_volume * gauss_weight[j] * gauss_weight[k];
+                            Kv[element_v[i][l]][element_v[i][m]] -= mu * dNdx[l][n]*dNdx[m][n] * partial_volume * gauss_weight[j] * gauss_weight[k];
                         }
                     }
                 }
                 //6x3 matrix
-                for(int l=0; l<6; l++){
-                    for(int m=0; m<3; m++){
+                for(int l=0; l<numofNodeinElm_velocity; l++){
+                    for(int m=0; m<numofNodeinElm_pressure; m++){
                         for(int n=0; n<2; n++){
-                            Kp[element_v[i][l]][element_p[i][m]][n] += dNdx[l][n] * N[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
+                            Kp[element_v[i][l]][element_p[i][m]][n] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
+                        }
+                    }
+                }
+                if(geometry == "quad"){
+                    //Darcy matrix
+                    for(int l=0; l<numofNodeinElm_velocity; l++){
+                        for(int m=0; m<numofNodeinElm_velocity; m++){
+                            Darcy[element_v[i][l]][element_v[i][m]] -= resistance * alpha * (1e0 - phi[i]) / (alpha + phi[i]) * Nv[l] * Nv[m] * partial_volume * gauss_weight[j] * gauss_weight[k]; 
                         }
                     }
                 }
             }
         }
-        //cout << sum_volume << endl;
     }
 
-    vector<vector<double>> global_matrix(node.size()*2+pressure_node.size(), vector<double>(node.size()*2+pressure_node.size(), 0.0));
-    vector<double> b(node.size()*2+pressure_node.size(), 0.0);
-    //set Kv
+    //set Kv& Darcy
     for(int i=0; i<node.size(); i++){
         for(int j=0; j<node.size(); j++){
             global_matrix[i][j] = Kv[i][j];
             global_matrix[i+node.size()][j+node.size()] = Kv[i][j];
+            if(geometry=="quad"){
+                global_matrix[i][j] += Darcy[i][j];
+                global_matrix[i+node.size()][j+node.size()] += Darcy[i][j];
+            }
         }
     }
     //set Kp
@@ -507,61 +635,71 @@ int main()
         }
     }
 
-    ofstream test("test.csv");
-    for(int i=0; i<global_matrix.size(); i++){
-        for(int j=0; j<global_matrix[i].size(); j++){
-            test << global_matrix[i][j] << ",";
-        }
-        test << endl;
-    }
     string str;
     vector<int> wall_boundary_node, inlet_boundary_node, outlet_boundary_node;
-    ifstream ifs("upper_wall_node.dat");
-    while(getline(ifs,str)){
-        wall_boundary_node.push_back(stoi(str));
-    }
-    ifs.close();
-    ifs.open("lower_wall_node.dat");
-    while(getline(ifs,str)){
-        wall_boundary_node.push_back(stoi(str));
-    }
-    ifs.close();
-    ifs.open("inlet_wall_boundary.dat");
+    string inlet_wall_boundary = base_input_dir + "/" + "inlet_node.dat";
+    ifstream ifs(inlet_wall_boundary);
     while(getline(ifs,str)){
         inlet_boundary_node.push_back(stoi(str));
     }
     ifs.close();
-    ifs.open("pressure_wall_node.dat");
-    while(getline(ifs,str)){
-        outlet_boundary_node.push_back(stoi(str));
-    }
-    ifs.close();
-
-    for(int i=0; i<wall_boundary_node.size(); i++){
-        for(int j=0; j<global_matrix.size(); j++){
-            global_matrix[wall_boundary_node[i]][j] = 0.0; //u
-            global_matrix[wall_boundary_node[i]+node.size()][j] = 0.0; //v
+    if(geometry=="quad"){
+        for(int i=0; i<inlet_boundary_node.size(); i++){
+            for(int j=0; j<global_matrix.size(); j++){
+                global_matrix[inlet_boundary_node[i]][j] = 0.0; //u
+                global_matrix[inlet_boundary_node[i]+node.size()][j] = 0.0; //v
+            }
+            global_matrix[inlet_boundary_node[i]][inlet_boundary_node[i]] = 1.0;
+            global_matrix[inlet_boundary_node[i]+node.size()][inlet_boundary_node[i]+node.size()] = 1.0;
+            b[inlet_boundary_node[i]+node.size()] = -1e-3;
         }
-        global_matrix[wall_boundary_node[i]][wall_boundary_node[i]] = 1.0;
-        global_matrix[wall_boundary_node[i]+node.size()][wall_boundary_node[i]+node.size()] = 1.0;
-    }
 
-    for(int i=0; i<inlet_boundary_node.size(); i++){
         for(int j=0; j<global_matrix.size(); j++){
-            global_matrix[inlet_boundary_node[i]][j] = 0.0; //u
-            global_matrix[inlet_boundary_node[i]+node.size()][j] = 0.0; //v
+            global_matrix[node.size()*2][j] = 0.0; //p
         }
-        global_matrix[inlet_boundary_node[i]][inlet_boundary_node[i]] = 1.0;
-        global_matrix[inlet_boundary_node[i]+node.size()][inlet_boundary_node[i]+node.size()] = 1.0;
-        b[inlet_boundary_node[i]] = 1e-3;
+        global_matrix[node.size()*2][node.size()*2] = 1.0;
     }
 
-    for(int i=0; i<outlet_boundary_node.size(); i++){
-        for(int j=0; j<global_matrix.size(); j++){
-            global_matrix[outlet_boundary_node[i]+node.size()*2][j] = 0.0; //p
+    if(geometry=="triangle"){
+        string outlet_wall_boundary = base_input_dir + "/" + "pressure_wall_node.dat";
+        string wall_boundary = base_input_dir + "/" + "wall_node.dat";
+
+        ifstream ifs(wall_boundary);
+        while(getline(ifs,str)){
+            wall_boundary_node.push_back(stoi(str));
         }
-        global_matrix[outlet_boundary_node[i]+node.size()*2][outlet_boundary_node[i]+node.size()*2] = 1.0;
+        ifs.close();
+        ifs.open(outlet_wall_boundary);
+        while(getline(ifs,str)){
+            outlet_boundary_node.push_back(stoi(str));
+        }
+        ifs.close();
+        for(int i=0; i<wall_boundary_node.size(); i++){
+            for(int j=0; j<global_matrix.size(); j++){
+                global_matrix[wall_boundary_node[i]][j] = 0.0; //u
+                global_matrix[wall_boundary_node[i]+node.size()][j] = 0.0; //v
+            }
+            global_matrix[wall_boundary_node[i]][wall_boundary_node[i]] = 1.0;
+            global_matrix[wall_boundary_node[i]+node.size()][wall_boundary_node[i]+node.size()] = 1.0;
+        }
+
+        for(int i=0; i<inlet_boundary_node.size(); i++){
+            for(int j=0; j<global_matrix.size(); j++){
+                global_matrix[inlet_boundary_node[i]][j] = 0.0; //u
+                global_matrix[inlet_boundary_node[i]+node.size()][j] = 0.0; //v
+            }
+            global_matrix[inlet_boundary_node[i]][inlet_boundary_node[i]] = 1.0;
+            global_matrix[inlet_boundary_node[i]+node.size()][inlet_boundary_node[i]+node.size()] = 1.0;
+            b[inlet_boundary_node[i]] = 1e-3;
+        }
+        for(int i=0; i<outlet_boundary_node.size(); i++){
+            for(int j=0; j<global_matrix.size(); j++){
+                global_matrix[outlet_boundary_node[i]+node.size()*2][j] = 0.0; //p
+            }
+            global_matrix[outlet_boundary_node[i]+node.size()*2][outlet_boundary_node[i]+node.size()*2] = 1.0;
+        }
     }
+
 
     std::vector<T> tripletVec;
     for(int i=0; i<global_matrix.size(); i++){
@@ -571,27 +709,31 @@ int main()
             }
         }
     }
+    
     Eigen::SparseMatrix<double> M(global_matrix.size(),global_matrix.size());
     M.setFromTriplets(tripletVec.begin(), tripletVec.end());
     Eigen::SparseMatrix<double> b_eigen(b.size(),1);
-    std::vector<T> tripletVecb;
+    std::vector<T> tripletList;
     for(int i=0; i<b.size(); i++){
         if(fabs(b[i])>1e-12){
-            tripletVecb.push_back(T(i,0,b[i]));
+            tripletList.push_back(T(i,0,b[i]));
         }
     }
-    b_eigen.setFromTriplets(tripletVecb.begin(), tripletVecb.end());
+    b_eigen.setFromTriplets(tripletList.begin(), tripletList.end());
     Eigen::VectorXd x;  // 解のベクトル
-    Eigen::SparseQR< Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > solver;  // solverオブジェクトを構築する。
-    solver.compute(M);
-    if( solver.info() != Eigen::Success ) {
+    Eigen::SparseLU< Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > solver2;  // solverオブジェクトを構築する。
+
+    solver2.compute(M);
+    if( solver2.info() != Eigen::Success ) {
         std::cerr << "decomposition failed" << std::endl;
+        exit(1);
     }
-    x = solver.solve(b_eigen);
-    if( solver.info() != Eigen::Success ) {
+    x = solver2.solve(b_eigen);
+    if( solver2.info() != Eigen::Success ) {
         std::cerr << "solving failed" << std::endl;
+        exit(1);
     }
-    ofstream ofs("ans.dat");
+    
     for(int i=0; i<node.size(); i++){
         u[i] = x(i);
         v[i] = x(i+node.size());
@@ -600,6 +742,6 @@ int main()
         pressure[i] = x(i+node.size()*2);
     }
 
-    export_vtu_quadratic_triangle("test_velocity.vtu", element_v, node, u, v);
-    export_vtu_triangle("test_presssure.vtu", element_p, pressure_node, pressure);
+    export_vtu_velocity("test_velocity.vtu", element_v, node, u, v);
+    export_vtu_pressure("test_presssure.vtu", element_p, pressure_node, pressure);
 }

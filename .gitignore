@@ -1,1 +1,7 @@
 a.out
+cmake
+build
+*.json
+.vscode
+Main
+*.vtu
