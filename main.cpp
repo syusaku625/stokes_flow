@@ -14,6 +14,7 @@
 #include <Eigen/SparseLU>
 #include<algorithm>
 #include "TextParser.h"
+#include "pardiso_solver.h"
 
 using namespace std;
 
@@ -550,11 +551,9 @@ int main(int argc,char *argv[])
         gauss_weight[0] = 0.555555555555555; gauss_weight[1] = 0.888888888888888; gauss_weight[2] = 0.555555555555555;
     }
     
-    vector<vector<double>> Kv(node.size(), vector<double>(node.size(), 0.0));
-    vector<vector<vector<double>>> Kp(node.size(), vector<vector<double>>(pressure_node.size(), vector<double>(2, 0.0)));
-    vector<vector<double>> Darcy(node.size(), vector<double>(node.size(), 0.0));
-    vector<vector<double>> global_matrix(node.size()*2+pressure_node.size(), vector<double>(node.size()*2+pressure_node.size(), 0.0));
-    vector<double> b(node.size()*2+pressure_node.size(), 0.0);
+    map<pair<int, int>, double> coo_map;
+    PARDISO_solver PARDISO;
+    PARDISO.initialize(node.size()*2+pressure_node.size());
 
     //calc Kv & Kvv & Darcy
     for(int i=0; i<element_v.size(); i++){
@@ -585,7 +584,8 @@ int main(int argc,char *argv[])
                 for(int l=0; l<numofNodeinElm_velocity; l++){
                     for(int m=0; m<numofNodeinElm_velocity; m++){
                         for(int n=0; n<2; n++){
-                            Kv[element_v[i][l]][element_v[i][m]] -= mu * dNdx[l][n]*dNdx[m][n] * partial_volume * gauss_weight[j] * gauss_weight[k];
+                            coo_map[make_pair(element_v[i][l], element_v[i][m])] += -mu * dNdx[l][n]*dNdx[m][n] * partial_volume * gauss_weight[j] * gauss_weight[k];
+                            coo_map[make_pair(element_v[i][l]+node.size(), element_v[i][m]+node.size())] += -mu * dNdx[l][n]*dNdx[m][n] * partial_volume * gauss_weight[j] * gauss_weight[k];
                         }
                     }
                 }
@@ -593,45 +593,28 @@ int main(int argc,char *argv[])
                 for(int l=0; l<numofNodeinElm_velocity; l++){
                     for(int m=0; m<numofNodeinElm_pressure; m++){
                         for(int n=0; n<2; n++){
-                            Kp[element_v[i][l]][element_p[i][m]][n] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
+                            if(n==0){
+                                coo_map[make_pair(element_v[i][l], element_p[i][m]+node.size()*2)] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
+                                coo_map[make_pair(element_p[i][m]+node.size()*2, element_v[i][l])] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
+                            }
+                            else if(n==1){
+                                coo_map[make_pair(element_v[i][l]+node.size(), element_p[i][m]+node.size()*2)] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
+                                coo_map[make_pair(element_p[i][m]+node.size()*2, element_v[i][l]+node.size())] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
+                            }
                         }
                     }
                 }
+
                 if(geometry == "quad"){
                     //Darcy matrix
                     for(int l=0; l<numofNodeinElm_velocity; l++){
                         for(int m=0; m<numofNodeinElm_velocity; m++){
-                            Darcy[element_v[i][l]][element_v[i][m]] -= resistance * alpha * (1e0 - phi[i]) / (alpha + phi[i]) * Nv[l] * Nv[m] * partial_volume * gauss_weight[j] * gauss_weight[k]; 
+                            coo_map[make_pair(element_v[i][l], element_v[i][m])] += -resistance * alpha * (1e0 - phi[i]) / (alpha + phi[i]) * Nv[l] * Nv[m] * partial_volume * gauss_weight[j] * gauss_weight[k];
+                            coo_map[make_pair(element_v[i][l]+node.size(), element_v[i][m]+node.size())] += -resistance * alpha * (1e0 - phi[i]) / (alpha + phi[i]) * Nv[l] * Nv[m] * partial_volume * gauss_weight[j] * gauss_weight[k];
                         }
                     }
                 }
             }
-        }
-    }
-
-    //set Kv& Darcy
-    for(int i=0; i<node.size(); i++){
-        for(int j=0; j<node.size(); j++){
-            global_matrix[i][j] = Kv[i][j];
-            global_matrix[i+node.size()][j+node.size()] = Kv[i][j];
-            if(geometry=="quad"){
-                global_matrix[i][j] += Darcy[i][j];
-                global_matrix[i+node.size()][j+node.size()] += Darcy[i][j];
-            }
-        }
-    }
-    //set Kp
-    for(int i=0; i<node.size(); i++){
-        for(int j=0; j<pressure_node.size(); j++){
-            global_matrix[i][j+2*node.size()] = Kp[i][j][0];
-            global_matrix[i+node.size()][j+2*node.size()] = Kp[i][j][1];
-        }
-    }
-    //set Kvv u
-    for(int i=0; i<pressure_node.size(); i++){
-        for(int j=0; j<node.size(); j++){
-            global_matrix[i+2*node.size()][j] = Kp[j][i][0];
-            global_matrix[i+2*node.size()][j+node.size()] = Kp[j][i][1];
         }
     }
 
@@ -643,22 +626,26 @@ int main(int argc,char *argv[])
         inlet_boundary_node.push_back(stoi(str));
     }
     ifs.close();
+    for(int i=0;i<node.size()*2+pressure_node.size();i++) PARDISO.b[i] = 0e0;
+
     if(geometry=="quad"){
         for(int i=0; i<inlet_boundary_node.size(); i++){
-            for(int j=0; j<global_matrix.size(); j++){
-                global_matrix[inlet_boundary_node[i]][j] = 0.0; //u
-                global_matrix[inlet_boundary_node[i]+node.size()][j] = 0.0; //v
+            for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+                coo_map[make_pair(inlet_boundary_node[i], j)] = 0e0;
+                coo_map[make_pair(inlet_boundary_node[i]+node.size(), j)] = 0e0;
             }
-            global_matrix[inlet_boundary_node[i]][inlet_boundary_node[i]] = 1.0;
-            global_matrix[inlet_boundary_node[i]+node.size()][inlet_boundary_node[i]+node.size()] = 1.0;
-            b[inlet_boundary_node[i]+node.size()] = -1e-3;
+            coo_map[make_pair(inlet_boundary_node[i], inlet_boundary_node[i])] = 1e0;
+            coo_map[make_pair(inlet_boundary_node[i]+node.size(), inlet_boundary_node[i]+node.size())] = 1e0;
+            PARDISO.b[inlet_boundary_node[i]+node.size()] = -1e-3;
         }
 
-        for(int j=0; j<global_matrix.size(); j++){
-            global_matrix[node.size()*2][j] = 0.0; //p
+        for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+            coo_map[make_pair(node.size()*2, j)] = 0e0;
         }
-        global_matrix[node.size()*2][node.size()*2] = 1.0;
+        coo_map[make_pair(node.size()*2, node.size()*2)] = 1e0;
     }
+
+    
 
     if(geometry=="triangle"){
         string outlet_wall_boundary = base_input_dir + "/" + "pressure_wall_node.dat";
@@ -675,71 +662,41 @@ int main(int argc,char *argv[])
         }
         ifs.close();
         for(int i=0; i<wall_boundary_node.size(); i++){
-            for(int j=0; j<global_matrix.size(); j++){
-                global_matrix[wall_boundary_node[i]][j] = 0.0; //u
-                global_matrix[wall_boundary_node[i]+node.size()][j] = 0.0; //v
+            for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+                coo_map[make_pair(wall_boundary_node[i],j)] = 0e0;
+                coo_map[make_pair(wall_boundary_node[i]+node.size(),j)] = 0e0;
             }
-            global_matrix[wall_boundary_node[i]][wall_boundary_node[i]] = 1.0;
-            global_matrix[wall_boundary_node[i]+node.size()][wall_boundary_node[i]+node.size()] = 1.0;
+            coo_map[make_pair(wall_boundary_node[i],wall_boundary_node[i])] = 1e0;
+            coo_map[make_pair(wall_boundary_node[i]+node.size(),wall_boundary_node[i]+node.size())] = 1e0;
         }
 
         for(int i=0; i<inlet_boundary_node.size(); i++){
-            for(int j=0; j<global_matrix.size(); j++){
-                global_matrix[inlet_boundary_node[i]][j] = 0.0; //u
-                global_matrix[inlet_boundary_node[i]+node.size()][j] = 0.0; //v
+            for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+                coo_map[make_pair(inlet_boundary_node[i],j)] = 0e0;
+                coo_map[make_pair(inlet_boundary_node[i]+node.size(),j)] = 0e0;
             }
-            global_matrix[inlet_boundary_node[i]][inlet_boundary_node[i]] = 1.0;
-            global_matrix[inlet_boundary_node[i]+node.size()][inlet_boundary_node[i]+node.size()] = 1.0;
-            b[inlet_boundary_node[i]] = 1e-3;
+            coo_map[make_pair(inlet_boundary_node[i],inlet_boundary_node[i])] = 1e0;
+            coo_map[make_pair(inlet_boundary_node[i]+node.size(),inlet_boundary_node[i]+node.size())] = 1e0;
+            PARDISO.b[inlet_boundary_node[i]] = 1e-3;
         }
         for(int i=0; i<outlet_boundary_node.size(); i++){
-            for(int j=0; j<global_matrix.size(); j++){
-                global_matrix[outlet_boundary_node[i]+node.size()*2][j] = 0.0; //p
+            for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+                coo_map[make_pair(outlet_boundary_node[i]+node.size()*2,j)] = 0e0;
             }
-            global_matrix[outlet_boundary_node[i]+node.size()*2][outlet_boundary_node[i]+node.size()*2] = 1.0;
+            coo_map[make_pair(outlet_boundary_node[i]+node.size()*2,outlet_boundary_node[i]+node.size()*2)] = 1e0;
         }
     }
 
+    PARDISO.create_csr_matrix(coo_map, node.size()*2+pressure_node.size());
 
-    std::vector<T> tripletVec;
-    for(int i=0; i<global_matrix.size(); i++){
-        for(int j=0; j<global_matrix[i].size(); j++){
-            if(fabs(global_matrix[i][j])>1e-12){
-                tripletVec.push_back(T(i,j,global_matrix[i][j]));
-            }
-        }
-    }
-    
-    Eigen::SparseMatrix<double> M(global_matrix.size(),global_matrix.size());
-    M.setFromTriplets(tripletVec.begin(), tripletVec.end());
-    Eigen::SparseMatrix<double> b_eigen(b.size(),1);
-    std::vector<T> tripletList;
-    for(int i=0; i<b.size(); i++){
-        if(fabs(b[i])>1e-12){
-            tripletList.push_back(T(i,0,b[i]));
-        }
-    }
-    b_eigen.setFromTriplets(tripletList.begin(), tripletList.end());
-    Eigen::VectorXd x;  // 解のベクトル
-    Eigen::SparseLU< Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > solver2;  // solverオブジェクトを構築する。
-
-    solver2.compute(M);
-    if( solver2.info() != Eigen::Success ) {
-        std::cerr << "decomposition failed" << std::endl;
-        exit(1);
-    }
-    x = solver2.solve(b_eigen);
-    if( solver2.info() != Eigen::Success ) {
-        std::cerr << "solving failed" << std::endl;
-        exit(1);
-    }
+    PARDISO.main(node.size()*2+pressure_node.size(),1);
     
     for(int i=0; i<node.size(); i++){
-        u[i] = x(i);
-        v[i] = x(i+node.size());
+        u[i] = PARDISO.x[i];
+        v[i] = PARDISO.x[i+node.size()];
     }
     for(int i=0; i<pressure_node.size(); i++){
-        pressure[i] = x(i+node.size()*2);
+        pressure[i] = PARDISO.x[i+node.size()*2];
     }
 
     export_vtu_velocity("test_velocity.vtu", element_v, node, u, v);
