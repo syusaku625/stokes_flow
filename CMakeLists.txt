@@ -82,14 +82,10 @@ target_compile_options(${main_target} PUBLIC ${compile_options_tmp})
 
 #
 target_link_libraries(${main_target} PRIVATE
-#  ${bayesopt_LIBRARY}
-#  ${Nlopt_LIBRARY}
-    ${TP_LIBRARY}
-#  ${HDF5_LIBRARIES}
-#  Base
-    ${MKL_LIBRARIES}
-    PARDISO
-    iomp5
+  PARDISO  
+  ${TP_LIBRARY}
+  ${MKL_LIBRARIES}
+  iomp5
 )
 
 install(TARGETS ${main_target} DESTINATION ${CMAKE_INSTALL_PREFIX})

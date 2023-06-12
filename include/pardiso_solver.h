@@ -59,7 +59,6 @@ class PARDISO_solver{
   //void set_CSR_dirichlet_boundary_condition3D(const int &numOfNode,ARRAY2D<int> &ibd);
   // /void set_CSR_dirichlet_boundary_condition1D(const int &numOfBd,ARRAY2D<int> &ibd);
 
-  void main(MKL_INT n,const int numOfOMP,double *b1,double *b2,double *b3);
 
 private:
   //void CSR_ptr_initialize(const VECTOR2D<int> &inb,const int &numOfNode,const int &dim);
