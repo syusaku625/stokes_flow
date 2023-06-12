@@ -29,11 +29,23 @@ void PARDISO_solver::initialize(const int &DOF)
   x=(double *)malloc(DOF*sizeof(double));
 }
 
-void PARDISO_solver::create_csr_matrix(map<pair<int, int>, double> tmp, int numOfNode)
+void PARDISO_solver::coo_add(pair<int, int> tmp1, double tmp2)
+{
+  coo_map[tmp1] += tmp2;
+}
+
+void PARDISO_solver::coo_insert(pair<int, int> tmp1, double tmp2)
+{
+  coo_map[tmp1] = tmp2;
+}
+
+void PARDISO_solver::create_csr_matrix(int numOfNode)
 {
     vector<int> column_coo, row_coo;
     vector<double> value_coo;
-    for(auto itr = tmp.begin(); itr!=tmp.end(); itr++){
+    int count=0;
+
+    for(auto itr = coo_map.begin(); itr!=coo_map.end(); itr++){
         row_coo.push_back(itr->first.first);
         column_coo.push_back(itr->first.second);
         value_coo.push_back(itr->second);
@@ -41,15 +53,17 @@ void PARDISO_solver::create_csr_matrix(map<pair<int, int>, double> tmp, int numO
 
     nnz = value_coo.size();
 
-    ptr = (MKL_INT *)malloc((numOfNode+1)*sizeof(MKL_INT));
-    index = (MKL_INT *)malloc( column_coo.size()*sizeof(MKL_INT) );
-    value = (double *)malloc( value_coo.size()*sizeof(double));
+    ptr = (MKL_INT*)malloc((numOfNode+1)*sizeof(MKL_INT));
+    index = (MKL_INT*)malloc(nnz*sizeof(MKL_INT));
+    value = (double*)malloc(nnz*sizeof(double));
 
+    #pragma omp parallel for
     for (int i = 0; i < numOfNode + 1; i++) {
         ptr[i] = 0;
     }
 
-    for (int i = 0; i < value_coo.size(); i++) {
+    #pragma omp parallel for
+    for (int i = 0; i < nnz; i++) {
         value[i] = value_coo[i];
         index[i] = column_coo[i];
         ptr[row_coo[i] + 1]++;
@@ -58,17 +72,6 @@ void PARDISO_solver::create_csr_matrix(map<pair<int, int>, double> tmp, int numO
     for (int i = 0; i < numOfNode + 1; i++) {
         ptr[i + 1] += ptr[i];
     }
-}
-
-double PARDISO_solver::vector_norm(const int &nump,const double *x)
-{
-  double norm=0e0;
-
-  #pragma omp parallel for reduction(+:norm)
-  for(int i=0;i<nump;i++){
-    norm += x[i] * x[i];
-  }
-  return sqrt(norm);
 }
 
 void PARDISO_solver::main(MKL_INT n,const int numOfOMP)
