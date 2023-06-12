@@ -49,11 +49,9 @@ void PARDISO_solver::create_csr_matrix(int numOfNode)
         row_coo.push_back(itr->first.first);
         column_coo.push_back(itr->first.second);
         value_coo.push_back(itr->second);
-        //ofs << itr->first.first << "," << itr->first.second << "," << itr->second << endl;
     }
 
     nnz = value_coo.size();
-    cout << coo_map.size() << " " << nnz << " " << count << endl;
 
     ptr = (MKL_INT*)malloc((numOfNode+1)*sizeof(MKL_INT));
     index = (MKL_INT*)malloc(nnz*sizeof(MKL_INT));
@@ -64,6 +62,7 @@ void PARDISO_solver::create_csr_matrix(int numOfNode)
         ptr[i] = 0;
     }
 
+    #pragma omp parallel for
     for (int i = 0; i < nnz; i++) {
         value[i] = value_coo[i];
         index[i] = column_coo[i];

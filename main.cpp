@@ -7,11 +7,6 @@
 #include<set>
 #include<map>
 #include <chrono>
-#include <Eigen/Sparse>
-#include <Eigen/PardisoSupport>
-#include <Eigen/Dense>
-#include <Eigen/SparseQR>
-#include <Eigen/SparseLU>
 #include<algorithm>
 #include "TextParser.h"
 #include "pardiso_solver.h"
@@ -92,7 +87,7 @@ void ShapeFunctionC2D6(vector<double> &N, double g1, double g2)
     N[5] = 4e0 * (1e0 - g1 - g2) * g1;
 }
 
-void ShapeFunctionC2D9(vector<double> &N, double g1, double g2)
+void ShapeFunctionC2D8(vector<double> &N, double g1, double g2)
 {
     N[0] = 2.5e-1 * (1e+0-g1) * (1e+0-g2) * (-1e+0-g1-g2);
     N[1] = 2.5e-1 * (1e+0+g1) * (1e+0-g2) * (-1e+0+g1-g2);
@@ -119,7 +114,7 @@ void ShapeFunctionC2D4(vector<double> &N, double g1, double g2)
     N[3] = 2.5e-1 * (1e+0-g1) * (1e+0+g2);
 }
 
-void ShapeFunctionC2D9_dNdr(vector<vector<double>> &dNdr, double g1, double g2)
+void ShapeFunctionC2D8_dNdr(vector<vector<double>> &dNdr, double g1, double g2)
 {
     dNdr[0][0] = 2.5e-1 * (1e+0-g2) * (2e+0*g1 +      g2);
     dNdr[0][1] = 2.5e-1 * (1e+0-g1) * (     g1 + 2e+0*g2);
@@ -450,8 +445,6 @@ void export_vtu_pressure(const std::string &file, vector<vector<int>> element, v
   fclose(fp);
 }
 
-typedef Eigen::Triplet<double> T;
-
 int main(int argc,char *argv[])
 {
     TextParser tp;
@@ -548,13 +541,14 @@ int main(int argc,char *argv[])
     PARDISO.initialize(node.size()*2+pressure_node.size());
 
     //calc Kv & Kvv & Darcy
+    #pragma omp parallel for
     for(int i=0; i<element_v.size(); i++){
         vector<vector<double>> dxdr(2, vector<double>(2, 0.0)), drdx(2, vector<double>(2, 0.0)), dNdr(numofNodeinElm_velocity, vector<double>(2, 0.0)), dNdx(numofNodeinElm_velocity, vector<double>(2, 0.0));
         vector<double> Np(numofNodeinElm_pressure, 0.0), Nv(numofNodeinElm_velocity, 0.0);
         for(int j=0; j<gauss_point.size(); j++){
             for(int k=0; k<gauss_point.size(); k++){
-                ShapeFunctionC2D9_dNdr(dNdr, gauss_point[j], gauss_point[k]);
-                ShapeFunctionC2D9(Nv, gauss_point[j], gauss_point[k]);
+                ShapeFunctionC2D8_dNdr(dNdr, gauss_point[j], gauss_point[k]);
+                ShapeFunctionC2D8(Nv, gauss_point[j], gauss_point[k]);
                 ShapeFunctionC2D4(Np, gauss_point[j], gauss_point[k]);
                 calc_dxdr(dxdr, dNdr, element_v, node, i, numofNodeinElm_velocity);
                 calc_inverse_matrix2x2(drdx,dxdr);
@@ -593,6 +587,7 @@ int main(int argc,char *argv[])
     #pragma omp parallel for
     for(int i=0;i<node.size()*2+pressure_node.size();i++) PARDISO.b[i] = 0e0;
 
+    #pragma omp parallel for
     for(int i=0; i<inlet_boundary_node.size(); i++){
         for(int j=0; j<node.size()*2+pressure_node.size(); j++){
             if(PARDISO.coo_map.count(make_pair(inlet_boundary_node[i], j))!=0){
@@ -606,11 +601,14 @@ int main(int argc,char *argv[])
         PARDISO.coo_insert(make_pair(inlet_boundary_node[i]+node.size(), inlet_boundary_node[i]+node.size()), 1e0);
         PARDISO.b[inlet_boundary_node[i]+node.size()] = -1e-3;
     }
+
+    #pragma omp parallel for
     for(int j=0; j<node.size()*2+pressure_node.size(); j++){
         if(PARDISO.coo_map.count(make_pair(node.size()*2, j))!=0){
             PARDISO.coo_insert(make_pair(node.size()*2, j), 0e0);
         }
     }
+
     PARDISO.coo_insert(make_pair(node.size()*2, node.size()*2), 1e0);
 
     PARDISO.create_csr_matrix(node.size()*2+pressure_node.size());
