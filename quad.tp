@@ -1,13 +1,14 @@
 Domain
 {
-  base_folder = "voxel_P2P1_element"
+  base_folder = "voxel_0.6_element"
   geometry = "quad"
-  numOfNodeInElmVelocity = 9
+  numOfNodeInElmVelocity = 8
   numOfNodeInElmPressure = 4
 }
 Parameter
 {
-  alpha = 1e-3
-  resistance = 1e4
-  mu = 1e-3
+  numOfompthreads = 8
+  alpha = 1e-2
+  resistance = 1e3
+  mu = 0.0035
 }

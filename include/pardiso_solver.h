@@ -24,6 +24,7 @@
 #include<vector>
 #include <cstdlib>
 #include <cmath>
+#include<fstream>
 #include<map>
 #include "mkl_pardiso.h"
 #include "mkl_types.h"
@@ -46,13 +47,17 @@ class PARDISO_solver{
   int nnz;
   MKL_INT *ptr,*index;
   double *value,*b,*x;
+  public:
+    std::map<std::pair<int, int>, double> coo_map;
+
 
   void main(MKL_INT n,const int numOfOMP);
   void initialize(const int &DOF);
   //void CSR_initialize(const VECTOR2D<int> &inb,const int &numOfNode,const int &dim);
-  void create_csr_matrix(std::map<std::pair<int, int>, double>, int numOfNode);
+  void create_csr_matrix(int numOfNode);
   double vector_norm(const int &nump,const double *x);
-
+  void coo_insert(std::pair<int, int> tmp1, double tmp2);
+  void coo_add(std::pair<int, int> tmp1, double tmp2);
   //void set_CSR_value1D(std::vector<ARRAY2D<double>> &K,const std::vector<ElementType> &element,const int &numOfNode,const int &numOfElm,const VECTOR2D<int> &inb);
   //void set_CSR_value2D(std::vector<ARRAY4D<double>> &K,const std::vector<ElementType> &element,const int &numOfNode,const int &numOfElm,const VECTOR2D<int> &inb);
   //void set_CSR_value3D(std::vector<ARRAY4D<double>> &K,const std::vector<ElementType> &element,const int &numOfNode,const int &numOfElm,const VECTOR2D<int> &inb);

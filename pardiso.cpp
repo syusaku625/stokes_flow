@@ -29,22 +29,38 @@ void PARDISO_solver::initialize(const int &DOF)
   x=(double *)malloc(DOF*sizeof(double));
 }
 
-void PARDISO_solver::create_csr_matrix(map<pair<int, int>, double> tmp, int numOfNode)
+void PARDISO_solver::coo_add(pair<int, int> tmp1, double tmp2)
+{
+  coo_map[tmp1] += tmp2;
+}
+
+void PARDISO_solver::coo_insert(pair<int, int> tmp1, double tmp2)
+{
+  coo_map[tmp1] = tmp2;
+}
+
+void PARDISO_solver::create_csr_matrix(int numOfNode)
 {
     vector<int> column_coo, row_coo;
     vector<double> value_coo;
-    for(auto itr = tmp.begin(); itr!=tmp.end(); itr++){
+    int count=0;
+    ofstream ofs("test.csv");
+    for(auto itr = coo_map.begin(); itr!=coo_map.end(); ++itr){
         row_coo.push_back(itr->first.first);
         column_coo.push_back(itr->first.second);
         value_coo.push_back(itr->second);
+        //ofs << itr->first.first << "," << itr->first.second << "," << itr->second << endl;
     }
+    ofs.close();
 
     nnz = value_coo.size();
+    cout << coo_map.size() << " " << nnz << " " << count << endl;
 
     ptr = (MKL_INT *)malloc((numOfNode+1)*sizeof(MKL_INT));
     index = (MKL_INT *)malloc( column_coo.size()*sizeof(MKL_INT) );
     value = (double *)malloc( value_coo.size()*sizeof(double));
 
+    #pragma omp parallel for
     for (int i = 0; i < numOfNode + 1; i++) {
         ptr[i] = 0;
     }

@@ -94,15 +94,14 @@ void ShapeFunctionC2D6(vector<double> &N, double g1, double g2)
 
 void ShapeFunctionC2D9(vector<double> &N, double g1, double g2)
 {
-    N[0] =  2.5e-1 * (1e+0-g1) * (1e+0-g2) * g1 * g2;
-    N[1] = -2.5e-1 * (1e+0+g1) * (1e+0-g2) * g1 * g2;
-    N[2] =  2.5e-1 * (1e+0+g1) * (1e+0+g2) * g1 * g2;
-    N[3] = -2.5e-1 * (1e+0-g1) * (1e+0+g2) * g1 * g2;
-    N[4] = -5e-1   * (1e+0-g1*g1) * (1e+0-g2) * g2;
-    N[5] =  5e-1   * (1e+0+g1) * (1e+0-g2*g2) * g1;
-    N[6] =  5e-1   * (1e+0-g1*g1) * (1e+0+g2) * g2;
-    N[7] = -5e-1   * (1e+0-g1) * (1e+0-g2*g2) * g1;
-    N[8] =           (1e+0-g1*g1) * (1e+0-g2*g2);
+    N[0] = 2.5e-1 * (1e+0-g1) * (1e+0-g2) * (-1e+0-g1-g2);
+    N[1] = 2.5e-1 * (1e+0+g1) * (1e+0-g2) * (-1e+0+g1-g2);
+    N[2] = 2.5e-1 * (1e+0+g1) * (1e+0+g2) * (-1e+0+g1+g2);
+    N[3] = 2.5e-1 * (1e+0-g1) * (1e+0+g2) * (-1e+0-g1+g2);
+    N[4] = 5e-1   * (1e+0-g1*g1) * (1e+0-g2);
+    N[5] = 5e-1   * (1e+0+g1)    * (1e+0-g2*g2);
+    N[6] = 5e-1   * (1e+0-g1*g1) * (1e+0+g2);
+    N[7] = 5e-1   * (1e+0-g1)    * (1e+0-g2*g2);
 }
 
 void ShapeFunctionC2D3(vector<double> &N, double g1, double g2)
@@ -122,24 +121,22 @@ void ShapeFunctionC2D4(vector<double> &N, double g1, double g2)
 
 void ShapeFunctionC2D9_dNdr(vector<vector<double>> &dNdr, double g1, double g2)
 {
-    dNdr[0][0] = 2.5e-1  * (1e+0-g2) * g2 * (1e+0 - 2e+0*g1);
-    dNdr[0][1] = 2.5e-1  * (1e+0-g1) * g1 * (1e+0 - 2e+0*g2);
-    dNdr[1][0] = -2.5e-1 * (1e+0-g2) * g2 * (1e+0 + 2e+0*g1);
-    dNdr[1][1] = -2.5e-1 * (1e+0+g1) * g1 * (1e+0 - 2e+0*g2);
-    dNdr[2][0] = 2.5e-1  * (1e+0+g2) * g2 * (1e+0 + 2e+0*g1);
-    dNdr[2][1] = 2.5e-1  * (1e+0+g1) * g1 * (1e+0 + 2e+0*g2);
-    dNdr[3][0] = -2.5e-1 * (1e+0+g2) * g2 * (1e+0 - 2e+0*g1);
-    dNdr[3][1] = -2.5e-1 * (1e+0-g1) * g1 * (1e+0 + 2e+0*g2);
-    dNdr[4][0] = g1 * (1e+0-g2) * g2;
-    dNdr[4][1] = -5e-1 * (1e+0-g1*g1) * (1e+0-2e+0*g2);
-    dNdr[5][0] = 5e-1 * (1e+0-g2*g2) * (1e+0+2e+0*g1);
-    dNdr[5][1] = -g2 * (1e+0+g1) * g1;
-    dNdr[6][0] = -g1 * (1e+0+g2) * g2;
-    dNdr[6][1] = 5e-1    * (1e+0-g1*g1) * (1e+0+2e+0*g2);
-    dNdr[7][0] = -5e-1   * (1e+0-g2*g2) * (1e+0-2e+0*g1);
-    dNdr[7][1] = g2 * (1e+0-g1) * g1;
-    dNdr[8][0] = -2e+0 * g1 * (1e+0-g2*g2);
-    dNdr[8][1] = -2e+0 * g2 * (1e+0-g1*g1);
+    dNdr[0][0] = 2.5e-1 * (1e+0-g2) * (2e+0*g1 +      g2);
+    dNdr[0][1] = 2.5e-1 * (1e+0-g1) * (     g1 + 2e+0*g2);
+    dNdr[1][0] = 2.5e-1 * (1e+0-g2) * (2e+0*g1 -      g2);
+    dNdr[1][1] = 2.5e-1 * (1e+0+g1) * (    -g1 + 2e+0*g2);
+    dNdr[2][0] = 2.5e-1 * (1e+0+g2) * (2e+0*g1 +      g2);
+    dNdr[2][1] = 2.5e-1 * (1e+0+g1) * (     g1 + 2e+0*g2);
+    dNdr[3][0] = 2.5e-1 * (1e+0+g2) * (2e+0*g1 -      g2);
+    dNdr[3][1] = 2.5e-1 * (1e+0-g1) * (    -g1 + 2e+0*g2);
+    dNdr[4][0] = -g1 * (1e+0-g2);
+    dNdr[4][1] = -5e-1 * (1e+0-g1*g1);
+    dNdr[5][0] = 5e-1 * (1e+0-g2*g2);
+    dNdr[5][1] = -g2 * (1e+0+g1);
+    dNdr[6][0] = -g1 * (1e+0+g2);
+    dNdr[6][1] = 5e-1 * (1e+0-g1*g1);
+    dNdr[7][0] = -5e-1 * (1e+0-g2*g2);
+    dNdr[7][1] = -g2 * (1e+0-g1);
 }
 
 void ShapeFunctionC2D6_dNdr(vector<vector<double>> &dNdr, double g1, double g2)
@@ -296,7 +293,7 @@ void export_vtu_velocity(const std::string &file, vector<vector<int>> element, v
   fprintf(fp, "<DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">\n");
   for (int i = 0; i < element.size(); i++){
     if(element[i].size()==6) fprintf(fp, "%d\n", 22);
-    if(element[i].size()==9) fprintf(fp, "%d\n", 23);
+    if(element[i].size()==8) fprintf(fp, "%d\n", 23);
   }
   fprintf(fp, "</DataArray>\n");
   fprintf(fp, "</Cells>\n");
@@ -453,14 +450,6 @@ void export_vtu_pressure(const std::string &file, vector<vector<int>> element, v
   fclose(fp);
 }
 
-double  return_max_edge_length(vector<vector<double>> node, vector<vector<int>> element, int ic)
-{
-    double L1 = pow(pow((node[element[ic][0]][0] - node[element[ic][1]][0]),2.0) + pow((node[element[ic][0]][1] - node[element[ic][1]][1]),2.0), 0.5);
-    double L2 = pow(pow((node[element[ic][1]][0] - node[element[ic][1]][2]),2.0) + pow((node[element[ic][1]][1] - node[element[ic][2]][1]),2.0), 0.5); 
-    double L3 = pow(pow((node[element[ic][2]][0] - node[element[ic][1]][0]),2.0) + pow((node[element[ic][2]][1] - node[element[ic][0]][1]),2.0), 0.5);
-    return max(max(L1, L2), L3);
-}
-
 typedef Eigen::Triplet<double> T;
 
 int main(int argc,char *argv[])
@@ -483,6 +472,7 @@ int main(int argc,char *argv[])
     string geometry;
     vector<double> pressure;
     vector<double> u, v;
+    int numOfOmpThreads;
 
     if ( !tp.getInspectedValue(label,base_input_dir)){
         cout << label << " is not set" << endl;
@@ -510,17 +500,20 @@ int main(int argc,char *argv[])
         cout << label << " is not set" << endl;
         exit(0);
     }
-    if(geometry == "quad"){
-        label = base_label + "/alpha";
-        if ( !tp.getInspectedValue(label,alpha)){
-            cout << label << " is not set" << endl;
-            exit(0);
-        }
-        label = base_label + "/resistance";
-        if ( !tp.getInspectedValue(label,resistance)){
-            cout << label << " is not set" << endl;
-            exit(0);
-        }
+    label = base_label + "/alpha";
+    if ( !tp.getInspectedValue(label,alpha)){
+        cout << label << " is not set" << endl;
+        exit(0);
+    }
+    label = base_label + "/resistance";
+    if ( !tp.getInspectedValue(label,resistance)){
+        cout << label << " is not set" << endl;
+        exit(0);
+    }
+    label = base_label + "/numOfompthreads";
+    if ( !tp.getInspectedValue(label,numOfOmpThreads)){
+        cout << label << " is not set" << endl;
+        exit(0);
     }
 
     string file_node = base_input_dir + "/" + "node.dat";
@@ -529,10 +522,17 @@ int main(int argc,char *argv[])
 
     file_read(file_element, file_node, element_v, element_p, node, numofNodeinElm_velocity, numofNodeinElm_pressure);
     
-    if(geometry=="quad"){
-        phi.resize(element_v.size());
-        set_phi(flow_path, phi);
+    phi.resize(element_v.size());
+    set_phi(flow_path, phi);
+
+    string inlet_wall_boundary = base_input_dir + "/" + "inlet_node.dat";
+    vector<int> inlet_boundary_node;
+    string str;
+    ifstream ifs(inlet_wall_boundary);
+    while(getline(ifs,str)){
+        inlet_boundary_node.push_back(stoi(str));
     }
+    ifs.close();
 
     redefine_pressure_node_element(node, element_p, pressure_node, pressure_element_transform);
     pressure.resize(pressure_node.size());
@@ -540,18 +540,10 @@ int main(int argc,char *argv[])
     v.resize(node.size());
 
     vector<double> gauss_point, gauss_weight;
-    if (geometry == "triangle") {
-        gauss_point.resize(3); gauss_weight.resize(3);
-        gauss_point[0] = 2e0/3e0; gauss_point[1] = 1e0/6e0; gauss_point[2] = 1e0/6e0;
-        gauss_weight[0] = 1e0/3e0; gauss_weight[1] = 1e0/3e0; gauss_weight[2] = 1e0/3e0;
-    }
-    else if (geometry == "quad"){
-        gauss_point.resize(3); gauss_weight.resize(3);
-        gauss_point[0] = -0.774596669241483; gauss_point[1] = 0e0; gauss_point[2] = 0.774596669241483;
-        gauss_weight[0] = 0.555555555555555; gauss_weight[1] = 0.888888888888888; gauss_weight[2] = 0.555555555555555;
-    }
+    gauss_point.resize(3); gauss_weight.resize(3);
+    gauss_point[0] = -0.774596669241483; gauss_point[1] = 0e0; gauss_point[2] = 0.774596669241483;
+    gauss_weight[0] = 0.555555555555555; gauss_weight[1] = 0.888888888888888; gauss_weight[2] = 0.555555555555555;
     
-    map<pair<int, int>, double> coo_map;
     PARDISO_solver PARDISO;
     PARDISO.initialize(node.size()*2+pressure_node.size());
 
@@ -559,33 +551,23 @@ int main(int argc,char *argv[])
     for(int i=0; i<element_v.size(); i++){
         vector<vector<double>> dxdr(2, vector<double>(2, 0.0)), drdx(2, vector<double>(2, 0.0)), dNdr(numofNodeinElm_velocity, vector<double>(2, 0.0)), dNdx(numofNodeinElm_velocity, vector<double>(2, 0.0));
         vector<double> Np(numofNodeinElm_pressure, 0.0), Nv(numofNodeinElm_velocity, 0.0);
-        double sum_volume = 0.0;
         for(int j=0; j<gauss_point.size(); j++){
             for(int k=0; k<gauss_point.size(); k++){
-                if (geometry == "triangle"){
-                    ShapeFunctionC2D6_dNdr(dNdr, gauss_point[j], gauss_point[k]);
-                    ShapeFunctionC2D6(Nv, gauss_point[j], gauss_point[k]);
-                    ShapeFunctionC2D3(Np, gauss_point[j], gauss_point[k]);
-                    calc_dxdr(dxdr, dNdr, element_v, node, i, numofNodeinElm_velocity);
-                    calc_inverse_matrix2x2(drdx,dxdr);
-                    calc_dNdx(dNdx, drdx, dNdr, numofNodeinElm_velocity);
-                }
-                else if (geometry == "quad"){
-                    ShapeFunctionC2D9_dNdr(dNdr, gauss_point[j], gauss_point[k]);
-                    ShapeFunctionC2D9(Nv, gauss_point[j], gauss_point[k]);
-                    ShapeFunctionC2D4(Np, gauss_point[j], gauss_point[k]);
-                    calc_dxdr(dxdr, dNdr, element_v, node, i, numofNodeinElm_velocity);
-                    calc_inverse_matrix2x2(drdx,dxdr);
-                    calc_dNdx(dNdx, drdx, dNdr, numofNodeinElm_velocity);
-                }
+                ShapeFunctionC2D9_dNdr(dNdr, gauss_point[j], gauss_point[k]);
+                ShapeFunctionC2D9(Nv, gauss_point[j], gauss_point[k]);
+                ShapeFunctionC2D4(Np, gauss_point[j], gauss_point[k]);
+                calc_dxdr(dxdr, dNdr, element_v, node, i, numofNodeinElm_velocity);
+                calc_inverse_matrix2x2(drdx,dxdr);
+                calc_dNdx(dNdx, drdx, dNdr, numofNodeinElm_velocity);
                 double partial_volume = calc_determinant2x2(dxdr);
-                sum_volume += partial_volume * gauss_weight[j] * gauss_weight[k];
                 //6x6 matrix
                 for(int l=0; l<numofNodeinElm_velocity; l++){
                     for(int m=0; m<numofNodeinElm_velocity; m++){
                         for(int n=0; n<2; n++){
-                            coo_map[make_pair(element_v[i][l], element_v[i][m])] += -mu * dNdx[l][n]*dNdx[m][n] * partial_volume * gauss_weight[j] * gauss_weight[k];
-                            coo_map[make_pair(element_v[i][l]+node.size(), element_v[i][m]+node.size())] += -mu * dNdx[l][n]*dNdx[m][n] * partial_volume * gauss_weight[j] * gauss_weight[k];
+                            PARDISO.coo_add(make_pair(element_v[i][l], element_v[i][m]), -mu * dNdx[l][n]*dNdx[m][n] * partial_volume * gauss_weight[j] * gauss_weight[k]);
+                            PARDISO.coo_add(make_pair(element_v[i][l]+node.size(), element_v[i][m]+node.size()), -mu * dNdx[l][n]*dNdx[m][n] * partial_volume * gauss_weight[j] * gauss_weight[k]);
+                            PARDISO.coo_add(make_pair(element_v[i][l], element_v[i][m]), -resistance * alpha * (1e0 - phi[i]) / (alpha + phi[i]) * Nv[l] * Nv[m] * partial_volume * gauss_weight[j] * gauss_weight[k]);
+                            PARDISO.coo_add(make_pair(element_v[i][l]+node.size(), element_v[i][m]+node.size()), -resistance * alpha * (1e0 - phi[i]) / (alpha + phi[i]) * Nv[l] * Nv[m] * partial_volume * gauss_weight[j] * gauss_weight[k]);
                         }
                     }
                 }
@@ -594,107 +576,53 @@ int main(int argc,char *argv[])
                     for(int m=0; m<numofNodeinElm_pressure; m++){
                         for(int n=0; n<2; n++){
                             if(n==0){
-                                coo_map[make_pair(element_v[i][l], element_p[i][m]+node.size()*2)] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
-                                coo_map[make_pair(element_p[i][m]+node.size()*2, element_v[i][l])] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
+                                PARDISO.coo_add(make_pair(element_v[i][l], element_p[i][m]+node.size()*2), dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k]);
+                                PARDISO.coo_add(make_pair(element_p[i][m]+node.size()*2, element_v[i][l]), dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k]);
                             }
                             else if(n==1){
-                                coo_map[make_pair(element_v[i][l]+node.size(), element_p[i][m]+node.size()*2)] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
-                                coo_map[make_pair(element_p[i][m]+node.size()*2, element_v[i][l]+node.size())] += dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k];
+                                PARDISO.coo_add(make_pair(element_v[i][l]+node.size(), element_p[i][m]+node.size()*2), dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k]);
+                                PARDISO.coo_add(make_pair(element_p[i][m]+node.size()*2, element_v[i][l]+node.size()), dNdx[l][n] * Np[m]* partial_volume * gauss_weight[j] * gauss_weight[k]);
                             }
                         }
                     }
                 }
-
-                if(geometry == "quad"){
-                    //Darcy matrix
-                    for(int l=0; l<numofNodeinElm_velocity; l++){
-                        for(int m=0; m<numofNodeinElm_velocity; m++){
-                            coo_map[make_pair(element_v[i][l], element_v[i][m])] += -resistance * alpha * (1e0 - phi[i]) / (alpha + phi[i]) * Nv[l] * Nv[m] * partial_volume * gauss_weight[j] * gauss_weight[k];
-                            coo_map[make_pair(element_v[i][l]+node.size(), element_v[i][m]+node.size())] += -resistance * alpha * (1e0 - phi[i]) / (alpha + phi[i]) * Nv[l] * Nv[m] * partial_volume * gauss_weight[j] * gauss_weight[k];
-                        }
-                    }
-                }
             }
         }
     }
-
-    string str;
-    vector<int> wall_boundary_node, inlet_boundary_node, outlet_boundary_node;
-    string inlet_wall_boundary = base_input_dir + "/" + "inlet_node.dat";
-    ifstream ifs(inlet_wall_boundary);
-    while(getline(ifs,str)){
-        inlet_boundary_node.push_back(stoi(str));
-    }
-    ifs.close();
+    
+    #pragma omp parallel for
     for(int i=0;i<node.size()*2+pressure_node.size();i++) PARDISO.b[i] = 0e0;
 
-    if(geometry=="quad"){
-        for(int i=0; i<inlet_boundary_node.size(); i++){
-            for(int j=0; j<node.size()*2+pressure_node.size(); j++){
-                coo_map[make_pair(inlet_boundary_node[i], j)] = 0e0;
-                coo_map[make_pair(inlet_boundary_node[i]+node.size(), j)] = 0e0;
-            }
-            coo_map[make_pair(inlet_boundary_node[i], inlet_boundary_node[i])] = 1e0;
-            coo_map[make_pair(inlet_boundary_node[i]+node.size(), inlet_boundary_node[i]+node.size())] = 1e0;
-            PARDISO.b[inlet_boundary_node[i]+node.size()] = -1e-3;
-        }
-
+    for(int i=0; i<inlet_boundary_node.size(); i++){
         for(int j=0; j<node.size()*2+pressure_node.size(); j++){
-            coo_map[make_pair(node.size()*2, j)] = 0e0;
+            if(PARDISO.coo_map.count(make_pair(inlet_boundary_node[i], j))!=0){
+                PARDISO.coo_insert(make_pair(inlet_boundary_node[i], j),0.0);
+            }
+            if(PARDISO.coo_map.count(make_pair(inlet_boundary_node[i]+node.size(), j))!=0){
+                PARDISO.coo_insert(make_pair(inlet_boundary_node[i]+node.size(), j),0.0);
+            }
         }
-        coo_map[make_pair(node.size()*2, node.size()*2)] = 1e0;
+        PARDISO.coo_insert(make_pair(inlet_boundary_node[i], inlet_boundary_node[i]), 1e0);
+        PARDISO.coo_insert(make_pair(inlet_boundary_node[i]+node.size(), inlet_boundary_node[i]+node.size()), 1e0);
+        PARDISO.b[inlet_boundary_node[i]+node.size()] = -1e-3;
     }
-
-    
-
-    if(geometry=="triangle"){
-        string outlet_wall_boundary = base_input_dir + "/" + "pressure_wall_node.dat";
-        string wall_boundary = base_input_dir + "/" + "wall_node.dat";
-
-        ifstream ifs(wall_boundary);
-        while(getline(ifs,str)){
-            wall_boundary_node.push_back(stoi(str));
-        }
-        ifs.close();
-        ifs.open(outlet_wall_boundary);
-        while(getline(ifs,str)){
-            outlet_boundary_node.push_back(stoi(str));
-        }
-        ifs.close();
-        for(int i=0; i<wall_boundary_node.size(); i++){
-            for(int j=0; j<node.size()*2+pressure_node.size(); j++){
-                coo_map[make_pair(wall_boundary_node[i],j)] = 0e0;
-                coo_map[make_pair(wall_boundary_node[i]+node.size(),j)] = 0e0;
-            }
-            coo_map[make_pair(wall_boundary_node[i],wall_boundary_node[i])] = 1e0;
-            coo_map[make_pair(wall_boundary_node[i]+node.size(),wall_boundary_node[i]+node.size())] = 1e0;
-        }
-
-        for(int i=0; i<inlet_boundary_node.size(); i++){
-            for(int j=0; j<node.size()*2+pressure_node.size(); j++){
-                coo_map[make_pair(inlet_boundary_node[i],j)] = 0e0;
-                coo_map[make_pair(inlet_boundary_node[i]+node.size(),j)] = 0e0;
-            }
-            coo_map[make_pair(inlet_boundary_node[i],inlet_boundary_node[i])] = 1e0;
-            coo_map[make_pair(inlet_boundary_node[i]+node.size(),inlet_boundary_node[i]+node.size())] = 1e0;
-            PARDISO.b[inlet_boundary_node[i]] = 1e-3;
-        }
-        for(int i=0; i<outlet_boundary_node.size(); i++){
-            for(int j=0; j<node.size()*2+pressure_node.size(); j++){
-                coo_map[make_pair(outlet_boundary_node[i]+node.size()*2,j)] = 0e0;
-            }
-            coo_map[make_pair(outlet_boundary_node[i]+node.size()*2,outlet_boundary_node[i]+node.size()*2)] = 1e0;
+    for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+        if(PARDISO.coo_map.count(make_pair(node.size()*2, j))!=0){
+            PARDISO.coo_insert(make_pair(node.size()*2, j), 0e0);
         }
     }
+    PARDISO.coo_insert(make_pair(node.size()*2, node.size()*2), 1e0);
 
-    PARDISO.create_csr_matrix(coo_map, node.size()*2+pressure_node.size());
+    PARDISO.create_csr_matrix(node.size()*2+pressure_node.size());
 
-    PARDISO.main(node.size()*2+pressure_node.size(),1);
-    
+    PARDISO.main(node.size()*2+pressure_node.size(),8);
+    #pragma omp parallel for
     for(int i=0; i<node.size(); i++){
         u[i] = PARDISO.x[i];
         v[i] = PARDISO.x[i+node.size()];
     }
+
+    #pragma omp parallel for
     for(int i=0; i<pressure_node.size(); i++){
         pressure[i] = PARDISO.x[i+node.size()*2];
     }
