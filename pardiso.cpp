@@ -44,28 +44,27 @@ void PARDISO_solver::create_csr_matrix(int numOfNode)
     vector<int> column_coo, row_coo;
     vector<double> value_coo;
     int count=0;
-    ofstream ofs("test.csv");
-    for(auto itr = coo_map.begin(); itr!=coo_map.end(); ++itr){
+
+    for(auto itr = coo_map.begin(); itr!=coo_map.end(); itr++){
         row_coo.push_back(itr->first.first);
         column_coo.push_back(itr->first.second);
         value_coo.push_back(itr->second);
         //ofs << itr->first.first << "," << itr->first.second << "," << itr->second << endl;
     }
-    ofs.close();
 
     nnz = value_coo.size();
     cout << coo_map.size() << " " << nnz << " " << count << endl;
 
-    ptr = (MKL_INT *)malloc((numOfNode+1)*sizeof(MKL_INT));
-    index = (MKL_INT *)malloc( column_coo.size()*sizeof(MKL_INT) );
-    value = (double *)malloc( value_coo.size()*sizeof(double));
+    ptr = (MKL_INT*)malloc((numOfNode+1)*sizeof(MKL_INT));
+    index = (MKL_INT*)malloc(nnz*sizeof(MKL_INT));
+    value = (double*)malloc(nnz*sizeof(double));
 
     #pragma omp parallel for
     for (int i = 0; i < numOfNode + 1; i++) {
         ptr[i] = 0;
     }
 
-    for (int i = 0; i < value_coo.size(); i++) {
+    for (int i = 0; i < nnz; i++) {
         value[i] = value_coo[i];
         index[i] = column_coo[i];
         ptr[row_coo[i] + 1]++;
@@ -74,17 +73,6 @@ void PARDISO_solver::create_csr_matrix(int numOfNode)
     for (int i = 0; i < numOfNode + 1; i++) {
         ptr[i + 1] += ptr[i];
     }
-}
-
-double PARDISO_solver::vector_norm(const int &nump,const double *x)
-{
-  double norm=0e0;
-
-  #pragma omp parallel for reduction(+:norm)
-  for(int i=0;i<nump;i++){
-    norm += x[i] * x[i];
-  }
-  return sqrt(norm);
 }
 
 void PARDISO_solver::main(MKL_INT n,const int numOfOMP)

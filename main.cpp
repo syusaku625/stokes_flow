@@ -615,7 +615,7 @@ int main(int argc,char *argv[])
 
     PARDISO.create_csr_matrix(node.size()*2+pressure_node.size());
 
-    PARDISO.main(node.size()*2+pressure_node.size(),8);
+    PARDISO.main(node.size()*2+pressure_node.size(),numOfOmpThreads);
     #pragma omp parallel for
     for(int i=0; i<node.size(); i++){
         u[i] = PARDISO.x[i];
