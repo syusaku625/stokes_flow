@@ -6,7 +6,7 @@ Domain
 }
 Parameter
 {
-  numOfompthreads = 4
+  numOfompthreads = 8
   alpha = 1e-3
   resistance = 1e4
   mu = 0.0035

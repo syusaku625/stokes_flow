@@ -52,23 +52,4 @@ find_package(MKL REQUIRED C CXX)
 include_directories(${MKL_INCLUDE_DIR})
 MESSAGE(${MKL_LIBRARIES})
 
-add_subdirectory(lib_src)
-
-set(main_target "Main")
-
-add_executable(${main_target} main.cpp)
-target_sources(${main_target}
-  PRIVATE
-    main.cpp
-)
-
-target_compile_options(${main_target} PUBLIC ${compile_options_tmp})
-
-target_link_libraries(${main_target} PRIVATE
-  STOKES
-  ${TP_LIBRARY}
-  ${MKL_LIBRARIES}
-  iomp5
-)
-
-install(TARGETS ${main_target} DESTINATION ${CMAKE_INSTALL_PREFIX})
+add_subdirectory(src)
