@@ -74,7 +74,7 @@ void PARDISO_solver::create_csr_matrix(int numOfNode)
     }
 }
 
-void PARDISO_solver::main(MKL_INT n,const int numOfOMP)
+void PARDISO_solver::main_solve(MKL_INT n,const int numOfOMP)
 {
   for(int ic=0;ic<n+1;ic++) ptr[ic]+=1;
   for(int ic=0;ic<nnz;ic++) index[ic]+=1;

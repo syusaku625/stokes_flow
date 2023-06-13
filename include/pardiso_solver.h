@@ -51,7 +51,7 @@ class PARDISO_solver{
     std::map<std::pair<int, int>, double> coo_map;
 
 
-  void main(MKL_INT n,const int numOfOMP);
+  void main_solve(MKL_INT n,const int numOfOMP);
   void initialize(const int &DOF);
   //void CSR_initialize(const VECTOR2D<int> &inb,const int &numOfNode,const int &dim);
   void create_csr_matrix(int numOfNode);
