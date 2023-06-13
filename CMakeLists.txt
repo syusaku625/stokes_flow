@@ -42,10 +42,6 @@ set(TP_DIR ${TP_DIR} CACHE PATH "...")
 find_package(TP REQUIRED)
 include_directories(${TP_INCLUDE_DIR})
 
-# Eigen
-find_package(Eigen REQUIRED)
-include_directories(${EIGEN_INCLUDE_DIR})
-
 # MKL
 set(MKL_ARCH "intel64")
 set(MKL_LINK "static")
@@ -56,33 +52,20 @@ find_package(MKL REQUIRED C CXX)
 include_directories(${MKL_INCLUDE_DIR})
 MESSAGE(${MKL_LIBRARIES})
 
+add_subdirectory(lib_src)
+
 set(main_target "Main")
-
-set(compile_options_tmp ${base_compile_options})
-string(REPLACE " " ";" compile_options_tmp ${compile_options_tmp})
-
-add_library(PARDISO STATIC)
-target_sources(PARDISO
-  PRIVATE
-    pardiso.cpp
-)
-
-target_include_directories(PARDISO PUBLIC
-  ${PROJECT_SOURCE_DIR}/include
-)
-
-target_compile_options(PARDISO PUBLIC ${compile_options_tmp})
 
 add_executable(${main_target} main.cpp)
 target_sources(${main_target}
   PRIVATE
     main.cpp
 )
+
 target_compile_options(${main_target} PUBLIC ${compile_options_tmp})
 
-#
 target_link_libraries(${main_target} PRIVATE
-  PARDISO  
+  STOKES
   ${TP_LIBRARY}
   ${MKL_LIBRARIES}
   iomp5
