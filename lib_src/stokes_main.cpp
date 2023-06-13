@@ -160,7 +160,6 @@ void STOKES_solver::main_stokes()
     #pragma omp parallel for
     for(int ic=0;ic<node.size()*2+pressure_node.size();ic++) PARDISO.b[ic] = 0e0;
 
-    #pragma omp parallel for
     for(int ic=0; ic<inlet_boundary_node.size(); ic++){
         for(int j=0; j<node.size()*2+pressure_node.size(); j++){
             if(PARDISO.coo_map.count(make_pair(inlet_boundary_node[ic], j))!=0){
