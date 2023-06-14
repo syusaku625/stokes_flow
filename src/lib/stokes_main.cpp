@@ -200,3 +200,146 @@ void STOKES_solver::main_stokes()
     export_vtu_velocity("test_velocity.vtu");
     export_vtu_pressure("test_presssure.vtu");
 }
+
+void STOKES_solver::main_stokes_topology_consider_external_force(vector<vector<double>> external_force)
+{
+    PARDISO.initialize(node.size()*2+pressure_node.size());
+    
+    gauss_point_setting();
+    //calc Kv & Kvv & Darcy
+    #pragma omp parallel for
+    for(int ic=0; ic<element_v.size(); ic++){
+        calc_diffusive_and_Darcy_matrix(ic);
+        calc_pressure_matrix(ic);
+    }
+    
+    #pragma omp parallel for
+    for(int ic=0;ic<node.size()*2+pressure_node.size();ic++) PARDISO.b[ic] = 0e0;
+
+
+    for(int i=0;i<node.size();i++){
+        for(int j=0;j<2;j++){
+            PARDISO.b[i+j*node.size()] = external_force[i][j];
+        }
+    }
+    
+    for(int ic=0; ic<inlet_boundary_node.size(); ic++){
+        for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+            if(PARDISO.coo_map.count(make_pair(inlet_boundary_node[ic], j))!=0){
+                PARDISO.coo_insert(make_pair(inlet_boundary_node[ic], j),0.0);
+            }
+            if(PARDISO.coo_map.count(make_pair(wall_boundary_node[ic], j))!=0){
+                PARDISO.coo_insert(make_pair(wall_boundary_node[ic], j),0.0);
+            }
+            if(PARDISO.coo_map.count(make_pair(inlet_boundary_node[ic]+node.size(), j))!=0){
+                PARDISO.coo_insert(make_pair(inlet_boundary_node[ic]+node.size(), j),0.0);
+            }
+            if(PARDISO.coo_map.count(make_pair(wall_boundary_node[ic]+node.size(), j))!=0){
+                PARDISO.coo_insert(make_pair(wall_boundary_node[ic]+node.size(), j),0.0);
+            }
+        }
+        PARDISO.coo_insert(make_pair(inlet_boundary_node[ic], inlet_boundary_node[ic]), 1e0);
+        PARDISO.coo_insert(make_pair(wall_boundary_node[ic], wall_boundary_node[ic]), 1e0);
+        PARDISO.coo_insert(make_pair(inlet_boundary_node[ic]+node.size(), inlet_boundary_node[ic]+node.size()), 1e0);
+        PARDISO.coo_insert(make_pair(wall_boundary_node[ic]+node.size(), wall_boundary_node[ic]+node.size()), 1e0);
+        PARDISO.b[inlet_boundary_node[ic]+node.size()] = -1e-3;
+    }
+
+
+    for(int ic=0; ic<outlet_boundary_node.size(); ic++){
+        for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+            if(PARDISO.coo_map.count(make_pair(outlet_boundary_node[ic]+node.size()*2, j))!=0){
+                PARDISO.coo_insert(make_pair(outlet_boundary_node[ic]+node.size()*2, j),0.0);
+            }
+        }
+        PARDISO.coo_insert(make_pair(outlet_boundary_node[ic]+node.size()*2, outlet_boundary_node[ic]+node.size()*2), 1e0);
+    }
+
+
+
+    PARDISO.coo_insert(make_pair(node.size()*2, node.size()*2), 1e0);
+
+
+    PARDISO.create_csr_matrix(node.size()*2+pressure_node.size());
+
+
+    PARDISO.main_solve(node.size()*2+pressure_node.size(),numOfOmpThreads);
+
+    #pragma omp parallel for
+    for(int i=0; i<node.size(); i++){
+        u[i] = PARDISO.x[i];
+        v[i] = PARDISO.x[i+node.size()];
+    }
+
+    #pragma omp parallel for
+    for(int i=0; i<pressure_node.size(); i++){
+        pressure[i] = PARDISO.x[i+node.size()*2];
+    }
+}
+
+void STOKES_solver::main_stokes_topology()
+{
+    PARDISO.initialize(node.size()*2+pressure_node.size());
+    gauss_point_setting();
+    //calc Kv & Kvv & Darcy
+    #pragma omp parallel for
+    for(int ic=0; ic<element_v.size(); ic++){
+        calc_diffusive_and_Darcy_matrix(ic);
+        calc_pressure_matrix(ic);
+    }
+
+    #pragma omp parallel for
+    for(int ic=0;ic<node.size()*2+pressure_node.size();ic++) PARDISO.b[ic] = 0e0;
+
+
+    for(int ic=0; ic<inlet_boundary_node.size(); ic++){
+        for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+            if(PARDISO.coo_map.count(make_pair(inlet_boundary_node[ic], j))!=0){
+                PARDISO.coo_insert(make_pair(inlet_boundary_node[ic], j),0.0);
+            }
+            if(PARDISO.coo_map.count(make_pair(wall_boundary_node[ic], j))!=0){
+                PARDISO.coo_insert(make_pair(wall_boundary_node[ic], j),0.0);
+            }
+            if(PARDISO.coo_map.count(make_pair(inlet_boundary_node[ic]+node.size(), j))!=0){
+                PARDISO.coo_insert(make_pair(inlet_boundary_node[ic]+node.size(), j),0.0);
+            }
+            if(PARDISO.coo_map.count(make_pair(wall_boundary_node[ic]+node.size(), j))!=0){
+                PARDISO.coo_insert(make_pair(wall_boundary_node[ic]+node.size(), j),0.0);
+            }
+        }
+        PARDISO.coo_insert(make_pair(inlet_boundary_node[ic], inlet_boundary_node[ic]), 1e0);
+        PARDISO.coo_insert(make_pair(wall_boundary_node[ic], wall_boundary_node[ic]), 1e0);
+        PARDISO.coo_insert(make_pair(inlet_boundary_node[ic]+node.size(), inlet_boundary_node[ic]+node.size()), 1e0);
+        PARDISO.coo_insert(make_pair(wall_boundary_node[ic]+node.size(), wall_boundary_node[ic]+node.size()), 1e0);
+        PARDISO.b[inlet_boundary_node[ic]+node.size()] = -1e-3;
+    }
+
+
+    for(int ic=0; ic<outlet_boundary_node.size(); ic++){
+        for(int j=0; j<node.size()*2+pressure_node.size(); j++){
+            if(PARDISO.coo_map.count(make_pair(outlet_boundary_node[ic]+node.size()*2, j))!=0){
+                PARDISO.coo_insert(make_pair(outlet_boundary_node[ic]+node.size()*2, j),0.0);
+            }
+        }
+        PARDISO.coo_insert(make_pair(outlet_boundary_node[ic]+node.size()*2, outlet_boundary_node[ic]+node.size()*2), 1e0);
+        PARDISO.b[outlet_boundary_node[ic]+node.size()*2] = 0e0;
+    }
+
+
+    PARDISO.coo_insert(make_pair(node.size()*2, node.size()*2), 1e0);
+
+    PARDISO.create_csr_matrix(node.size()*2+pressure_node.size());
+
+    PARDISO.main_solve(node.size()*2+pressure_node.size(),numOfOmpThreads);
+
+    #pragma omp parallel for
+    for(int i=0; i<node.size(); i++){
+        u[i] = PARDISO.x[i];
+        v[i] = PARDISO.x[i+node.size()];
+    }
+
+    #pragma omp parallel for
+    for(int i=0; i<pressure_node.size(); i++){
+        pressure[i] = PARDISO.x[i+node.size()*2];
+    }
+}

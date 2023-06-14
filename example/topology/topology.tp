@@ -1,13 +1,18 @@
 Domain
 {
+    loop_max = 100
+}
+
+Domain
+{
   base_folder = "voxel_P2P1_element"
   numOfNodeInElmVelocity = 8
   numOfNodeInElmPressure = 4
 }
 Parameter
 {
-  numOfompthreads = 8
-  alpha = 1e-3
-  resistance = 1e4
-  mu = 0.0035
+    mu=0.0035
+    alpha = 1e-2
+    resistance = 1e5
+    numOfompthreads = 8
 }

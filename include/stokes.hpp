@@ -15,21 +15,22 @@
 #include "pardiso_solver.h"
 
 class STOKES_solver{
-    double alpha, resistance, mu;
-    std::vector<std::vector<int>> element_v, element_p;
-    std::vector<std::vector<double>> node, pressure_node;
-    std::map<int, int> pressure_element_transform;
-    std::vector<double> phi;
-    std::vector<double> u,v,pressure;
-    std::vector<int> inlet_boundary_node;
+    public:
+        double alpha, resistance, mu;
+        std::vector<std::vector<int>> element_v, element_p;
+        std::vector<std::vector<double>> node, pressure_node;
+        std::map<int, int> pressure_element_transform;
+        std::vector<double> phi;
+        std::vector<double> u,v,pressure;
+        std::vector<int> inlet_boundary_node, outlet_boundary_node, wall_boundary_node;
 
-    std::string base_input_dir;
+        std::string base_input_dir;
 
-    int numOfNodeInElmVelocity, numOfNodeInElmPressure;
+        int numOfNodeInElmVelocity, numOfNodeInElmPressure;
 
-    int numOfOmpThreads;
+        int numOfOmpThreads;
 
-    std::vector<double> gauss_point, gauss_weight;
+        std::vector<double> gauss_point, gauss_weight;
 
     PARDISO_solver PARDISO;
     public:
@@ -55,6 +56,13 @@ class STOKES_solver{
 
     void export_vtu_pressure(const std::string &file);
     void export_vtu_velocity(const std::string &file);
+
+    //for topology
+    void input_domain_info_topology();
+    void input_boundary_info_topology();
+    void main_stokes_topology();
+    void main_stokes_topology_consider_external_force(std::vector<std::vector<double>> external_force);
+
 
 
 

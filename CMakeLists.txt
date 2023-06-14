@@ -52,4 +52,9 @@ find_package(MKL REQUIRED C CXX)
 include_directories(${MKL_INCLUDE_DIR})
 MESSAGE(${MKL_LIBRARIES})
 
+# NLopt
+set(NLopt_DIR ${NLopt_DIR} CACHE PATH "...")
+find_package(NLopt REQUIRED)
+include_directories(${NLopt_INCLUDE_DIR})
+
 add_subdirectory(src)

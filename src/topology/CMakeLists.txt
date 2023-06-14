@@ -12,6 +12,7 @@ target_link_libraries(${main_target} PRIVATE
   STOKES
   ${TP_LIBRARY}
   ${MKL_LIBRARIES}
+  ${NLopt_LIBRARY}
   iomp5
 )
 

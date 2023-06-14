@@ -22,6 +22,8 @@ target_sources(STOKES
     fileIO.cpp
     parameter.cpp
     stokes_main.cpp
+    topology_stokes.cpp
+    MMA.cpp
 )
 
 target_include_directories(STOKES PUBLIC
