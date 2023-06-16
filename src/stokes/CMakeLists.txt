@@ -11,6 +11,7 @@ target_compile_options(${main_target} PUBLIC ${compile_options_tmp})
 target_link_libraries(${main_target} PRIVATE
   STOKES
   ${TP_LIBRARY}
+  ${NLopt_LIBRARY}
   ${MKL_LIBRARIES}
   iomp5
 )

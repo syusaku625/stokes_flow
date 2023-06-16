@@ -15,7 +15,7 @@ double MMA::return_objective_function(const vector<double> &rho_MMA, vector<doub
     }
     
     topo_ptr->Stokes_main.main_stokes_topology();
-
+    
     //calc C
     double objective_function = topo_ptr->calc_C();
 
@@ -39,17 +39,16 @@ double MMA::return_objective_function(const vector<double> &rho_MMA, vector<doub
     }
 
     topo_ptr->loop++;
-    string output = "simp_" + to_string(topo_ptr->loop)+ ".vtu";
+    string output = "simp/simp_" + to_string(topo_ptr->loop)+ ".vtu";
+    cout << "loop = " << topo_ptr->loop << endl;
     topo_ptr->Stokes_main.export_vtu_velocity(output);
     return objective_function;
 }
 
 void MMA::simp_usingMMA(topology &simp)
 {
-    cout << simp.rho.size() << endl;
     simp.loop = 0;
     nlopt::opt opt(nlopt::LD_MMA, simp.Stokes_main.element_v.size());
-    cout << simp.Stokes_main.element_v.size() << endl;
     
     opt.set_lower_bounds(1e-5);
     opt.set_upper_bounds(1e0);

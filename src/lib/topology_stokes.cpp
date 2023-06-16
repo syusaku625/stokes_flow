@@ -6,7 +6,6 @@ void STOKES_solver::input_domain_info_topology()
 {
     string file_node = base_input_dir + "/" + "node.dat";
     string file_element = base_input_dir + "/" + "element.dat";
-    string flow_path = base_input_dir + "/" + "flow_element.dat";
 
     int numOfElm=0;
     int numOfNode=0;

@@ -9,10 +9,11 @@ Domain
   numOfNodeInElmVelocity = 8
   numOfNodeInElmPressure = 4
 }
+
 Parameter
 {
     mu=0.0035
     alpha = 1e-2
     resistance = 1e5
-    numOfompthreads = 8
+    numOfompthreads = 4
 }
