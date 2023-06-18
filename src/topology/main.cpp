@@ -33,7 +33,6 @@ int main(int argc,char *argv[])
     T_S.Stokes_main.input_boundary_info_topology();
     T_S.Stokes_main.redifine_pressure_node_element();
     T_S.Stokes_main.pressure_velocity_initialize();
-    T_S.Stokes_main.main_stokes_topology();
 
     T_S.Stokes_adjoint.input_parameter_from_tp_file();
     T_S.Stokes_adjoint.input_domain_info_topology();

@@ -62,6 +62,7 @@ class STOKES_solver{
     void input_boundary_info_topology();
     void main_stokes_topology();
     void main_stokes_topology_consider_external_force(std::vector<std::vector<double>> external_force);
+    void export_rho(const std::string &file);
 
 
 

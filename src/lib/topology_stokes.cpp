@@ -203,7 +203,7 @@ void topology::initialize()
     element_volume.resize(Stokes_main.element_v.size());
 
     for(int ic=0;ic<Stokes_main.element_v.size();ic++){
-        element_volume[ic] = 4e0*7e-4*7e-4;
+        element_volume[ic] = 7e-4*7e-4;
         TotalVolume += element_volume[ic];
     }
 
@@ -228,14 +228,14 @@ void topology::calc_sensivity()
 
                 double vel[2] = {0e0, 0e0}, adj[2] = {0e0,0e0};
                 for (int l = 0; l < Stokes_main.numOfNodeInElmVelocity; l++){
-                    vel[0] += Nv[i] * Stokes_main.u[Stokes_main.element_v[i][l]];
-                    vel[1] += Nv[i] * Stokes_main.v[Stokes_main.element_v[i][l]];
+                    vel[0] += Nv[l] * Stokes_main.u[Stokes_main.element_v[i][l]];
+                    vel[1] += Nv[l] * Stokes_main.v[Stokes_main.element_v[i][l]];
 
-                    adj[0] += Nv[i] * Stokes_adjoint.u[Stokes_adjoint.element_v[i][l]];
-                    adj[1] += Nv[i] * Stokes_adjoint.v[Stokes_adjoint.element_v[i][l]];
+                    adj[0] += Nv[l] * Stokes_adjoint.u[Stokes_adjoint.element_v[i][l]];
+                    adj[1] += Nv[l] * Stokes_adjoint.v[Stokes_adjoint.element_v[i][l]];
                 }
 
-                double f = -Stokes_main.resistance * Stokes_main.alpha * (Stokes_main.alpha+1e0) /pow(Stokes_main.alpha+0.5,2e0);
+                double f = -Stokes_main.resistance * Stokes_main.alpha * (Stokes_main.alpha+1e0) /pow(Stokes_main.alpha+rho[i],2e0);
 
                 double tmp=0e0;
                 for(int l=0;l<2;l++) tmp += (vel[l]*vel[l] + vel[l]*adj[l]);

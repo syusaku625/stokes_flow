@@ -12,6 +12,7 @@ double MMA::return_objective_function(const vector<double> &rho_MMA, vector<doub
     for(int i=0; i<topo_ptr->Stokes_main.element_v.size(); i++){
         topo_ptr->Stokes_main.phi[i] = rho_MMA[i];
         topo_ptr->Stokes_adjoint.phi[i] = rho_MMA[i];
+        //cout << rho_MMA[i] << endl;
     }
     
     topo_ptr->Stokes_main.main_stokes_topology();
@@ -32,16 +33,18 @@ double MMA::return_objective_function(const vector<double> &rho_MMA, vector<doub
     for(int i=0; i<topo_ptr->Stokes_main.element_v.size(); i++){  //initalize
         grad[i] = 0e0;
     }
-
     //no filtered grad
     for(int e=0;e<topo_ptr->Stokes_main.element_v.size();e++){
         grad[e] = topo_ptr->dCdr[e];
+        //cout << grad[e] << endl;
     }
 
     topo_ptr->loop++;
     string output = "simp/simp_" + to_string(topo_ptr->loop)+ ".vtu";
+    string output_rho = "simp/rho_" + to_string(topo_ptr->loop)+ ".vtu";
     cout << "loop = " << topo_ptr->loop << endl;
     topo_ptr->Stokes_main.export_vtu_velocity(output);
+    topo_ptr->Stokes_main.export_rho(output_rho);
     return objective_function;
 }
 
@@ -55,9 +58,9 @@ void MMA::simp_usingMMA(topology &simp)
 
     opt.set_min_objective(MMA::return_objective_function, &simp);
 
-    opt.add_inequality_constraint(MMA::constraint_volume, &simp, 1e-8);
+    opt.add_inequality_constraint(MMA::constraint_volume, &simp, 1e-12);
     
-    opt.set_ftol_rel(1e-6);
+    opt.set_ftol_rel(1e-12);
     opt.set_maxeval(500); //for erro code: n回の反復で最適化を終了
 
     double minimize_objfunction;
@@ -81,7 +84,7 @@ double MMA::constraint_volume(const vector<double> &rho_MMA, vector<double> &gra
         topo_ptr->currentVolume+=rho_MMA[i]*topo_ptr->element_volume[i];
     }
 
-  //cout << " constfunc = "<< left << setw(7) << simp_ptr->currentVolume << endl;
+   cout << " constfunc = "<< left << setw(7) << topo_ptr->currentVolume << endl;
 
   if (!grad.empty()) {
     #pragma omp parallel for

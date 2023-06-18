@@ -21,8 +21,6 @@ class topology{
     std::vector<double> element_volume;
 
     void initialize();
-    double return_objective_function(const std::vector<double> &rho_MMA, std::vector<double> &grad, void *my_func_data);
-    
     double calc_C();
     void calc_sensivity();
     void calc_adjoint_force();

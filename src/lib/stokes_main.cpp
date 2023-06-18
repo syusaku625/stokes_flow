@@ -220,6 +220,7 @@ void STOKES_solver::main_stokes_topology_consider_external_force(vector<vector<d
     for(int i=0;i<node.size();i++){
         for(int j=0;j<2;j++){
             PARDISO.b[i+j*node.size()] = external_force[i][j];
+            //cout << external_force[i][j] << endl;
         }
     }
     
